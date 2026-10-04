@@ -8,6 +8,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 
 // 말머리 (디시 갤러리처럼 글 종류를 나눈다)
 const CATEGORIES = [
@@ -98,6 +99,60 @@ function isAdmin(pw) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// ---------- 첨부 이미지 ----------
+
+const MAX_IMAGES = 4;
+const IMAGE_TYPES = {
+  jpeg: { ext: 'jpg', magic: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  png: { ext: 'png', magic: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  webp: { ext: 'webp', magic: (b) => b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP' },
+  gif: { ext: 'gif', magic: (b) => b.toString('ascii', 0, 4) === 'GIF8' },
+};
+
+// data:image/...;base64,... 를 검사해서 { buf, ext } 로 바꾼다 (SVG 등 다른 형식은 거부)
+function decodeImage(dataUrl, maxBytes) {
+  const m = typeof dataUrl === 'string' && /^data:image\/(jpeg|png|webp|gif);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  if (!m) throw new HttpError(400, '지원하지 않는 이미지 형식입니다 (jpg, png, webp, gif)');
+  const type = IMAGE_TYPES[m[1]];
+  const buf = Buffer.from(m[2], 'base64');
+  if (buf.length < 12 || !type.magic(buf)) throw new HttpError(400, '이미지 파일이 손상되었습니다');
+  if (buf.length > maxBytes) throw new HttpError(413, '이미지가 너무 큽니다');
+  return { buf, ext: type.ext };
+}
+
+function parseImages(list) {
+  if (list == null) return [];
+  if (!Array.isArray(list)) throw new HttpError(400, '잘못된 이미지');
+  if (list.length > MAX_IMAGES) throw new HttpError(400, `이미지는 ${MAX_IMAGES}장까지 올릴 수 있습니다`);
+  return list.map((img) => ({
+    full: decodeImage(img?.full, 4 * 1024 * 1024),
+    thumb: decodeImage(img?.thumb, 400 * 1024),
+    w: Math.max(1, Math.min(10000, Math.round(Number(img?.w) || 1))),
+    h: Math.max(1, Math.min(10000, Math.round(Number(img?.h) || 1))),
+  }));
+}
+
+function saveImages(parsed) {
+  if (!parsed.length) return [];
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  return parsed.map((img) => {
+    const name = crypto.randomBytes(12).toString('hex');
+    fs.writeFileSync(path.join(UPLOAD_DIR, `${name}.${img.full.ext}`), img.full.buf);
+    fs.writeFileSync(path.join(UPLOAD_DIR, `${name}_t.${img.thumb.ext}`), img.thumb.buf);
+    return { src: `/uploads/${name}.${img.full.ext}`, thumb: `/uploads/${name}_t.${img.thumb.ext}`, w: img.w, h: img.h };
+  });
+}
+
+function deleteImages(images) {
+  for (const img of images || []) {
+    for (const url of [img.src, img.thumb]) {
+      if (typeof url === 'string' && url.startsWith('/uploads/')) {
+        fs.rm(path.join(UPLOAD_DIR, path.basename(url)), { force: true }, () => {});
+      }
+    }
+  }
+}
+
 // ---------- 직렬화 ----------
 
 function score(p) {
@@ -158,10 +213,13 @@ function publicPost(p, voter, withBody) {
     down: p.down.length,
     myVote: p.up.includes(voter) ? 'up' : p.down.includes(voter) ? 'down' : null,
     commentCount: p.comments.length,
+    thumb: p.images?.[0]?.thumb || null,
+    imageCount: p.images?.length || 0,
   };
   if (withBody) {
     out.body = p.body;
     out.spoiler = p.spoiler;
+    out.images = p.images || [];
     out.comments = p.comments.map((c) => ({
       id: c.id,
       parentId: c.parentId,
@@ -188,13 +246,13 @@ function send(res, status, data) {
   res.end(body);
 }
 
-function readJson(req) {
+function readJson(req, limit = 64 * 1024) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > 64 * 1024) {
+      if (size > limit) {
         reject(new HttpError(413, '요청이 너무 큽니다'));
         req.destroy();
         return;
@@ -310,7 +368,7 @@ async function api(req, res, url) {
 
   // POST /api/posts
   if (m === 'POST' && parts.length === 1) {
-    const b = await readJson(req);
+    const b = await readJson(req, 24 * 1024 * 1024);
     const post = {
       id: 0,
       category: CATEGORY_IDS.has(b.category) ? b.category : 'general',
@@ -329,7 +387,9 @@ async function api(req, res, url) {
     if (post.category === 'notice' && !isAdmin(b.adminPassword)) {
       throw new HttpError(403, '공지는 운영자만 쓸 수 있습니다');
     }
+    const images = parseImages(b.images);
     throttle(req, 'post', 5000);
+    post.images = saveImages(images);
     post.id = nextId();
     db.posts.push(post);
     saveDb();
@@ -356,6 +416,7 @@ async function api(req, res, url) {
     const b = await readJson(req);
     if (!checkPassword(b.password, post.pw)) throw new HttpError(403, '비밀번호가 틀렸습니다');
     db.posts = db.posts.filter((p) => p !== post);
+    deleteImages(post.images);
     saveDb();
     return send(res, 200, { ok: true });
   }
@@ -437,6 +498,28 @@ const MIME = {
   '.woff2': 'font/woff2',
 };
 
+function serveUpload(req, res, url) {
+  const name = url.pathname.slice('/uploads/'.length);
+  if (!/^[a-f0-9]{24}(_t)?\.(jpg|png|webp|gif)$/.test(name)) {
+    res.writeHead(404);
+    return res.end();
+  }
+  const file = path.join(UPLOAD_DIR, name);
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) {
+      res.writeHead(404);
+      return res.end();
+    }
+    res.writeHead(200, {
+      'Content-Type': MIME[path.extname(name)],
+      'Content-Length': st.size,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    fs.createReadStream(file).pipe(res);
+  });
+}
+
 function serveStatic(req, res, url) {
   let rel = decodeURIComponent(url.pathname);
   if (rel === '/') rel = '/index.html';
@@ -463,6 +546,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
     if (url.pathname.startsWith('/api/')) await api(req, res, url);
+    else if (url.pathname.startsWith('/uploads/')) serveUpload(req, res, url);
     else serveStatic(req, res, url);
   } catch (e) {
     if (e instanceof HttpError) send(res, e.status, { error: e.message });

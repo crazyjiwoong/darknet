@@ -163,6 +163,7 @@
     pen: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>',
     sparkle: '<svg viewBox="0 0 24 24"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>',
     layoutCard: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>',
+    image: '<svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 12.5V18h14v-3l-4-4-5 5-2.5-2.5L5 16.5zM8.5 7.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>',
     layoutList: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.3h18M3 14.6h18"/></svg>',
     chevron: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M6 9l6 6 6-6"/></svg>',
   };
@@ -252,14 +253,14 @@
     ];
 
     const hero = !cat && !q
-      ? `<section class="hero">
-          <div class="hero-title">다크넷 · DARKNET</div>
-          <img src="assets/darknet-logo.png" alt="DARKNET" width="602" height="97">
-          <div class="hero-info">
-            <span><b>유형</b>온라인 커뮤니티 사이트</span>
-            <span><b>운영자</b>다크불릿</span>
-            <span><b>회원가입</b>선택</span>
-          </div>
+      ? `<section class="hero" aria-label="다크넷 정보">
+          <div class="hero-head"><strong>다크넷</strong><span>DARKNET</span></div>
+          <div class="hero-logo"><img src="assets/darknet-logo.png" alt="DARKNET" width="602" height="97"></div>
+          <table class="hero-table">
+            <tr><th>유형</th><td><span class="wiki-link">온라인 커뮤니티</span> 사이트<br><span class="wiki-link">소셜 미디어</span><sup title="아르코의 테마극장 「댄스 쇼다운! 꿈꾸는 포도!」에서 유튜브나 인스타, 트위터 같은 SNS 역할도 있음을 보여줬다.">[1]</sup></td></tr>
+            <tr><th>운영자</th><td><a class="wiki-link" href="#/search?q=${encodeURIComponent('다크불릿')}">다크불릿</a></td></tr>
+            <tr><th>회원가입</th><td>선택</td></tr>
+          </table>
         </section>`
       : `<div class="board-head"><h2>${q ? esc(`"${q}" 검색 결과`) : catLabel(cat)}</h2><span id="countLabel"></span></div>
          ${cat ? `<p class="board-desc">${esc(state.categories.find((c) => c.id === cat)?.desc || '')}</p>` : ''}`;
@@ -317,10 +318,11 @@
     $('#list').innerHTML = posts.map((p) => {
       const read = state.read.has(p.id);
       const notice = p.category === 'notice' && !cat;
-      return `<a class="post-card${read ? ' read' : ''}${notice ? ' notice' : ''}" href="#/p/${p.id}">
+      const thumbAttrs = p.thumb ? ` data-thumb="${esc(p.thumb)}" data-count="${p.imageCount}"` : '';
+      return `<a class="post-card${read ? ' read' : ''}${notice ? ' notice' : ''}" href="#/p/${p.id}"${thumbAttrs}>
         <div class="post-main">
           <div class="post-cat"><span class="avatar"></span>${notice ? '📌 ' : ''}${catLabel(p.category)}</div>
-          <div class="post-title">${esc(p.title)}</div>
+          <div class="post-title">${esc(p.title)}${p.imageCount ? `<span class="has-img" title="이미지 ${p.imageCount}장">${icon.image}${p.imageCount > 1 ? p.imageCount : ''}</span>` : ''}</div>
           ${voteStats(p, { comments: p.commentCount, views: p.views, who: `${p.nick} · ${timeAgo(p.createdAt)}` })}
         </div>
         ${p.hot ? hotBadge(p.hot) : ''}
@@ -378,6 +380,7 @@
         </div>
         <h1>${esc(p.title)}</h1>
         <div class="body">${esc(p.body)}</div>
+        ${p.images?.length ? `<div class="post-images">${p.images.map((img) => `<a href="${esc(img.src)}" target="_blank" rel="noopener"><img src="${esc(img.src)}" alt="첨부 이미지" loading="lazy" width="${Number(img.w) || ''}" height="${Number(img.h) || ''}"></a>`).join('')}</div>` : ''}
         ${voteStats(p, {
           interactive: true, kind: 'post', id: p.id, comments: p.comments.length,
           menu: `<span class="menu-wrap"><button type="button" class="stat stat-more" data-menu="post">•••</button></span>`,
@@ -576,6 +579,8 @@
           <input class="field" name="adminPassword" type="password" maxlength="64" placeholder="관리자 비밀번호 (공지 작성용)" hidden>
           <input class="field" name="title" maxlength="80" placeholder="제목" required>
           <textarea class="field" name="body" maxlength="5000" placeholder="내용을 입력하세요. 익명성은 보장됩니다(아마도)." style="min-height:200px" required></textarea>
+          <div class="label">이미지 (최대 4장 · 본문에 붙여넣기 가능)</div>
+          <div class="img-picker" id="imgPicker"></div>
           <div class="label">스포일러 (선택)</div>
           <textarea class="field" name="spoiler" maxlength="2000" placeholder="'스포일러 보기'를 눌러야 보이는 내용" style="min-height:60px"></textarea>
           <div class="label">읽은 사람에게 주는 보상 (선택)</div>
@@ -609,7 +614,37 @@
     $('#catChips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (b) { category = b.dataset.cat; drawChips(); } };
     $('#rewardChips').onclick = (e) => { const b = e.target.closest('[data-reward]'); if (b) { reward = b.dataset.reward; drawChips(); } };
 
+    // 첨부 이미지 (File 객체) — 등록할 때 줄여서 보낸다
+    const files = [];
+    const drawPicker = () => {
+      for (const el of $('#imgPicker').querySelectorAll('img')) URL.revokeObjectURL(el.src);
+      $('#imgPicker').innerHTML = files
+        .map((f, i) => `<div class="img-item"><img src="${URL.createObjectURL(f)}" alt=""><button type="button" data-remove="${i}" aria-label="이미지 빼기">×</button></div>`)
+        .join('') + (files.length < MAX_IMAGES
+        ? `<label class="img-add" title="이미지 추가">${icon.image}<span>${files.length}/${MAX_IMAGES}</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden></label>`
+        : '');
+      const input = $('#imgPicker input');
+      if (input) input.onchange = () => { addFiles(input.files); };
+    };
+    const addFiles = (list) => {
+      for (const f of list) {
+        if (!/^image\/(jpeg|png|webp|gif)$/.test(f.type)) { toast('jpg, png, webp, gif만 올릴 수 있어요'); continue; }
+        if (files.length >= MAX_IMAGES) { toast(`이미지는 ${MAX_IMAGES}장까지예요`); break; }
+        files.push(f);
+      }
+      drawPicker();
+    };
+    $('#imgPicker').onclick = (e) => {
+      const b = e.target.closest('[data-remove]');
+      if (b) { files.splice(Number(b.dataset.remove), 1); drawPicker(); }
+    };
+    drawPicker();
+
     const form = $('#writeForm');
+    form.body.addEventListener('paste', (e) => {
+      const pasted = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
+      if (pasted.length) { e.preventDefault(); addFiles(pasted); }
+    });
     form.body.oninput = () => ($('#bodyCount').textContent = `${form.body.value.length} / 5000`);
     const leave = () => (history.length > 1 ? history.back() : (location.hash = '#/'));
     $('#btnBack').onclick = leave;
@@ -622,6 +657,12 @@
       btn.disabled = true;
       try {
         rememberIdentity(fd.get('nick'), fd.get('password'));
+        let images = [];
+        if (files.length) {
+          btn.textContent = '이미지 처리 중…';
+          images = await Promise.all(files.map(prepareImage));
+        }
+        btn.textContent = '등록 중…';
         const post = await api('/posts', {
           method: 'POST',
           body: {
@@ -633,6 +674,7 @@
             adminPassword: fd.get('adminPassword') || undefined,
             nick: fd.get('nick'),
             password: fd.get('password'),
+            images,
           },
         });
         markRead(post.id);
@@ -641,13 +683,165 @@
       } catch (err) {
         toast(err.message);
         btn.disabled = false;
+        btn.textContent = '등록';
       }
     };
     form.title.focus();
   }
 
+  // ---------- 이미지 줄이기 ----------
+  const MAX_IMAGES = 4;
+  const canWebp = (() => {
+    try { return document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp'); } catch { return false; }
+  })();
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지를 읽을 수 없어요')); };
+      img.src = url;
+    });
+  }
+
+  function encode(img, maxSide, quality) {
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext('2d');
+    if (!canWebp) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL(canWebp ? 'image/webp' : 'image/jpeg', quality);
+  }
+
+  const dataUrlBytes = (u) => Math.floor((u.length - u.indexOf(',') - 1) * 0.75);
+
+  function readAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error('이미지를 읽을 수 없어요'));
+      r.readAsDataURL(file);
+    });
+  }
+
+  // 원본은 긴 변 1600px, 미리보기용 썸네일은 480px로 줄인다. 움직이는 GIF는 작으면 그대로 보낸다
+  async function prepareImage(file) {
+    const img = await loadImage(file);
+    let full;
+    if (file.type === 'image/gif' && file.size <= 3.5 * 1024 * 1024) full = await readAsDataUrl(file);
+    else {
+      full = encode(img, 1600, 0.85);
+      if (dataUrlBytes(full) > 3.5 * 1024 * 1024) full = encode(img, 1200, 0.7);
+    }
+    let thumb = encode(img, 480, 0.8);
+    if (dataUrlBytes(thumb) > 380 * 1024) thumb = encode(img, 320, 0.6);
+    return { full, thumb, w: img.naturalWidth, h: img.naturalHeight };
+  }
+
+  // ---------- 아카라이브식 미리보기 ----------
+  // 마우스를 올리면 커서 옆에, 휴대폰에서는 길게 누르면 손가락 위에 첫 번째 이미지를 띄운다
+  const preview = $('#preview');
+  let previewCard = null;
+
+  function placePreview(x, y, touch) {
+    const w = preview.offsetWidth;
+    const h = preview.offsetHeight;
+    const pad = 12;
+    let left;
+    let top;
+    if (touch) {
+      left = x - w / 2;
+      top = y - h - 28;
+      if (top < pad) top = y + 28;
+    } else {
+      left = x + 18;
+      top = y + 18;
+      if (left + w > innerWidth - pad) left = x - w - 18;
+      if (top + h > innerHeight - pad) top = y - h - 18;
+    }
+    preview.style.left = Math.max(pad, Math.min(left, innerWidth - w - pad)) + 'px';
+    preview.style.top = Math.max(pad, Math.min(top, innerHeight - h - pad)) + 'px';
+  }
+
+  function showPreview(card, x, y, touch) {
+    previewCard = card;
+    const img = preview.querySelector('img');
+    const count = Number(card.dataset.count) || 1;
+    preview.querySelector('.preview-count').textContent = count > 1 ? `+${count - 1}` : '';
+    preview.querySelector('.preview-count').hidden = count < 2;
+    if (img.getAttribute('src') !== card.dataset.thumb) {
+      img.src = card.dataset.thumb;
+      img.onload = () => { if (previewCard === card) placePreview(x, y, touch); };
+    }
+    preview.hidden = false;
+    placePreview(x, y, touch);
+  }
+
+  function hidePreview() {
+    previewCard = null;
+    preview.hidden = true;
+  }
+
+  const canHover = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (canHover) {
+    view.addEventListener('mouseover', (e) => {
+      const card = e.target.closest('.post-card[data-thumb]');
+      if (card && card !== previewCard) showPreview(card, e.clientX, e.clientY, false);
+    });
+    view.addEventListener('mousemove', (e) => {
+      if (previewCard) placePreview(e.clientX, e.clientY, false);
+    });
+    view.addEventListener('mouseout', (e) => {
+      if (previewCard && !previewCard.contains(e.relatedTarget)) hidePreview();
+    });
+  }
+
+  let pressTimer = null;
+  let pressStart = null;
+  let suppressClick = false;
+  view.addEventListener('touchstart', (e) => {
+    const card = e.target.closest('.post-card[data-thumb]');
+    if (!card || e.touches.length > 1) return;
+    const t = e.touches[0];
+    pressStart = { x: t.clientX, y: t.clientY };
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => {
+      suppressClick = true;
+      showPreview(card, pressStart.x, pressStart.y, true);
+      navigator.vibrate?.(15);
+    }, 380);
+  }, { passive: true });
+  view.addEventListener('touchmove', (e) => {
+    if (!pressStart) return;
+    const t = e.touches[0];
+    if (Math.hypot(t.clientX - pressStart.x, t.clientY - pressStart.y) > 10) {
+      clearTimeout(pressTimer);
+      pressStart = null;
+      hidePreview();
+    }
+  }, { passive: true });
+  const endPress = () => {
+    clearTimeout(pressTimer);
+    pressStart = null;
+    if (previewCard) hidePreview();
+  };
+  view.addEventListener('touchend', endPress);
+  view.addEventListener('touchcancel', endPress);
+  // 길게 눌러 미리보기를 봤으면 손을 뗄 때 글이 열리지 않게 한다
+  view.addEventListener('click', (e) => {
+    if (suppressClick) { suppressClick = false; e.preventDefault(); e.stopPropagation(); }
+  }, true);
+  view.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('.post-card[data-thumb]') && !canHover) e.preventDefault();
+  });
+  view.addEventListener('scroll', hidePreview, { passive: true });
+
   // ---------- 라우터 ----------
   function route() {
+    hidePreview();
     openDrawer(false);
     closeMenus();
     const hash = location.hash.slice(1) || '/';
