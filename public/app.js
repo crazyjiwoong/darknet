@@ -164,6 +164,20 @@
     chevron: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M6 9l6 6 6-6"/></svg>',
   };
 
+  // 핫 지수 배지 (마우스를 올리면 추천/댓글/조회/참여율 점수가 보인다)
+  function hotBadge(h) {
+    const detail = `추천 ${h.votes} + 댓글 ${h.comments} + 조회 ${h.views} + 참여율 ${h.engage}`;
+    return `<div class="hot-badge" title="${esc(detail)}">
+      <span class="hot-num">${icon.flame}${Math.round(h.total)}</span>
+      <span class="hot-label">핫 지수</span>
+      <div class="hot-bars" aria-label="${esc(detail)}">
+        ${[['votes', '추천'], ['comments', '댓글'], ['views', '조회'], ['engage', '참여']]
+          .map(([k, label]) => `<span class="hot-bar ${k}" style="--w:${Math.min(100, (h[k] / Math.max(h.total, 1)) * 100)}%" title="${label} ${h[k]}"></span>`)
+          .join('')}
+      </div>
+    </div>`;
+  }
+
   function rewardTile(post, claimed) {
     const r = REWARDS[post.reward];
     if (!r) return '';
@@ -172,13 +186,14 @@
     </div>`;
   }
 
-  function voteStats(item, { comments, interactive, kind, id, menu }) {
+  function voteStats(item, { comments, views, interactive, kind, id, menu }) {
     const tag = interactive ? 'button' : 'span';
     const attrs = (type) => (interactive ? ` type="button" data-vote="${type}" data-kind="${kind}" data-id="${id}"` : '');
     return `<div class="stats">
       <${tag} class="stat${item.myVote === 'up' ? ' on-up' : ''}"${attrs('up')} title="추천">${icon.flame}${item.up}</${tag}>
       <${tag} class="stat${item.myVote === 'down' ? ' on-down' : ''}"${attrs('down')} title="비추천">${icon.drop}${item.down}</${tag}>
       ${comments != null ? `<span class="stat" title="댓글">${icon.chat}${comments}</span>` : ''}
+      ${views != null ? `<span class="stat" title="조회수">${icon.eye}${views}</span>` : ''}
       ${menu || '<span class="stat stat-more">•••</span>'}
     </div>`;
   }
@@ -267,7 +282,8 @@
       </div>
       ${state.sort === 'hot' ? `<div class="periods" role="group" aria-label="기간">
         ${PERIODS.map((pd) => `<button type="button" class="period${state.period === pd.id ? ' on' : ''}" data-period="${pd.id}">${pd.label}</button>`).join('')}
-      </div>` : ''}
+      </div>
+      <p class="hot-help">🔥 핫 지수 = 추천(비율과 수) + 댓글(참여한 사람 수, 글쓴이 제외) + 조회수 + 참여율(본 사람 중 반응한 비율)</p>` : ''}
       ${q ? '' : tabs}
       <div class="list${state.compact ? ' compact' : ''}" id="list"><div class="empty">불러오는 중…</div></div>`;
 
@@ -307,8 +323,9 @@
         <div class="post-main">
           <div class="post-cat"><span class="avatar"></span>${notice ? '📌 ' : ''}${catLabel(p.category)}<small>${esc(p.nick)} · ${timeAgo(p.createdAt)}</small></div>
           <div class="post-title">${esc(p.title)}</div>
-          ${voteStats(p, { comments: p.commentCount })}
+          ${voteStats(p, { comments: p.commentCount, views: p.views })}
         </div>
+        ${p.hot ? hotBadge(p.hot) : ''}
         ${rewardTile(p, read)}
         ${!read ? `<span class="heart" title="안 읽은 글">${icon.heart}</span>` : ''}
       </a>`;

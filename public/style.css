@@ -303,6 +303,30 @@ svg { display: block; }
 .period:hover { color: var(--text-dim); }
 .period.on { background: #ff8a5c; color: #2b2529; }
 
+.hot-help { margin: -6px 4px 12px; color: var(--muted); font-size: 12px; font-weight: 500; }
+
+/* 핫 지수 배지 */
+.hot-badge {
+  flex: none;
+  width: 74px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 6px 7px;
+  border-radius: 10px;
+  background: #2a2226;
+  border: 1.5px solid #5a3a40;
+}
+.hot-num { display: flex; align-items: center; gap: 3px; font-size: 18px; font-weight: 900; color: #ff8a5c; }
+.hot-num svg { width: 15px; height: 15px; fill: currentColor; }
+.hot-label { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.hot-bars { display: flex; width: 100%; height: 5px; border-radius: 3px; overflow: hidden; background: #3a3035; margin-top: 2px; }
+.hot-bar { width: var(--w); height: 100%; }
+.hot-bar.votes { background: #ff8a5c; }
+.hot-bar.comments { background: #7fd4ff; }
+.hot-bar.views { background: #c9b8c2; }
+.hot-bar.engage { background: #8fe3a0; }
+.list.compact .hot-badge { width: 60px; padding: 4px; }
+.list.compact .hot-label { display: none; }
+
 /* ---------- 말머리 탭 (디시 갤러리 스타일) ---------- */
 .head-tabs {
   display: flex; gap: 6px;
@@ -704,6 +728,8 @@ textarea.field { resize: vertical; min-height: 80px; line-height: 1.55; }
   .post-title { font-size: 16.5px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .stats { gap: 14px; }
   .reward { width: 48px; height: 48px; font-size: 24px; }
+  .hot-badge { width: 56px; padding: 4px; }
+  .hot-label { display: none; }
   .toolbar { gap: 2px; }
   .sort-btn { padding: 0 9px; font-size: 13px; }
   .layout-btn { padding: 0 4px; }

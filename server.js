@@ -104,9 +104,41 @@ function score(p) {
   return p.up.length - p.down.length;
 }
 
-// 핫한 글: 정한 기간 안에 올라온 글 중 반응(추천, 댓글, 조회)이 많은 순
+// 추천 비율의 신뢰 하한 (윌슨 점수). 표가 적으면 낮게, 많고 비율이 좋으면 높게 나온다
+function wilson(up, total) {
+  if (!total) return 0;
+  const z = 1.96;
+  const phat = up / total;
+  return (phat + (z * z) / (2 * total) - z * Math.sqrt((phat * (1 - phat) + (z * z) / (4 * total)) / total)) / (1 + (z * z) / total);
+}
+
+// 핫 지수: 추천, 댓글, 조회수를 따로 분석해서 합친다
+function hotBreakdown(p) {
+  const up = p.up.length;
+  const down = p.down.length;
+  // 추천: 비율이 좋고(윌슨) 수가 많을수록. 비추가 많으면 크게 깎인다
+  const votes = wilson(up, up + down) * Math.log2(1 + up) * 12;
+  // 댓글: 글쓴이 본인 댓글은 빼고, 몇 명이 참여했는지를 더 크게 본다
+  const others = p.comments.filter((c) => !c.deleted && c.nick !== p.nick);
+  const people = new Set(others.map((c) => c.nick)).size;
+  const comments = Math.log2(1 + people) * 8 + Math.log2(1 + others.length) * 4;
+  // 조회수: 로그로 눌러서 조회수만 많은 글이 독식하지 않게
+  const views = Math.log10(1 + p.views) * 6;
+  // 참여율: 본 사람 중 반응한 비율이 높으면 보너스
+  const rate = (up + down + people) / Math.max(p.views, 20);
+  const engage = Math.min(rate, 0.5) * 30;
+  const r = (n) => Math.round(n * 10) / 10;
+  return {
+    total: r(votes + comments + views + engage),
+    votes: r(votes),
+    comments: r(comments),
+    views: r(views),
+    engage: r(engage),
+  };
+}
+
 function hotScore(p) {
-  return score(p) + p.comments.length * 2 + p.views * 0.05;
+  return hotBreakdown(p).total;
 }
 
 const DAY = 24 * 3.6e6;
@@ -264,9 +296,16 @@ async function api(req, res, url) {
       list = list.filter((p) => p.createdAt >= since);
     }
     if (sort === 'new') list.sort((a, b) => b.createdAt - a.createdAt);
-    else if (sort === 'hot') list.sort((a, b) => hotScore(b) - hotScore(a) || b.createdAt - a.createdAt);
+    else if (sort === 'hot') {
+      const scores = new Map(list.map((p) => [p, hotScore(p)]));
+      list.sort((a, b) => scores.get(b) - scores.get(a) || b.createdAt - a.createdAt);
+    }
     else list.sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt);
-    return send(res, 200, [...pinned, ...list].map((p) => publicPost(p, voter, false)));
+    return send(res, 200, [...pinned, ...list].map((p) => {
+      const out = publicPost(p, voter, false);
+      if (sort === 'hot' && p.category !== 'notice') out.hot = hotBreakdown(p);
+      return out;
+    }));
   }
 
   // POST /api/posts
@@ -301,9 +340,13 @@ async function api(req, res, url) {
 
   // GET /api/posts/:id
   if (m === 'GET' && parts.length === 2) {
-    if (url.searchParams.get('view') === '1') {
-      post.views++;
-      saveDb();
+    if (url.searchParams.get('view') === '1' && voter) {
+      post.viewedBy ||= [];
+      if (!post.viewedBy.includes(voter)) {
+        post.viewedBy.push(voter);
+        post.views++;
+        saveDb();
+      }
     }
     return send(res, 200, publicPost(post, voter, true));
   }
