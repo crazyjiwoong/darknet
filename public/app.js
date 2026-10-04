@@ -255,7 +255,7 @@
     const hero = !cat && !q
       ? `<section class="hero" aria-label="다크넷 정보">
           <div class="hero-head"><strong>다크넷</strong><span>DARKNET</span></div>
-          <div class="hero-logo"><img src="assets/darknet-logo.png" alt="DARKNET" width="602" height="97"></div>
+          <div class="hero-logo"><img class="hero-ghost" src="assets/ghost.svg" alt="" width="120" height="96"><img class="hero-wordmark" src="assets/darknet-wordmark.svg" alt="DARKNET" width="600" height="97"></div>
           <table class="hero-table">
             <tr><th>유형</th><td><span class="wiki-link">온라인 커뮤니티</span> 사이트<br><span class="wiki-link">소셜 미디어</span><sup title="아르코의 테마극장 「댄스 쇼다운! 꿈꾸는 포도!」에서 유튜브나 인스타, 트위터 같은 SNS 역할도 있음을 보여줬다.">[1]</sup></td></tr>
             <tr><th>운영자</th><td><a class="wiki-link" href="#/search?q=${encodeURIComponent('다크불릿')}">다크불릿</a></td></tr>
@@ -742,63 +742,52 @@
   }
 
   // ---------- 아카라이브식 미리보기 ----------
-  // 마우스를 올리면 커서 옆에, 휴대폰에서는 길게 누르면 손가락 위에 첫 번째 이미지를 띄운다
+  // 글 줄에 마우스를 올리거나 손가락을 대면, 그 줄 왼쪽 아래에 정사각형 썸네일을 붙여서 띄운다
   const preview = $('#preview');
   let previewCard = null;
 
-  function placePreview(x, y, touch) {
-    const w = preview.offsetWidth;
-    const h = preview.offsetHeight;
-    const pad = 12;
-    let left;
-    let top;
-    if (touch) {
-      left = x - w / 2;
-      top = y - h - 28;
-      if (top < pad) top = y + 28;
-    } else {
-      left = x + 18;
-      top = y + 18;
-      if (left + w > innerWidth - pad) left = x - w - 18;
-      if (top + h > innerHeight - pad) top = y - h - 18;
-    }
-    preview.style.left = Math.max(pad, Math.min(left, innerWidth - w - pad)) + 'px';
-    preview.style.top = Math.max(pad, Math.min(top, innerHeight - h - pad)) + 'px';
+  function placePreview(card) {
+    const r = card.getBoundingClientRect();
+    const size = preview.offsetHeight;
+    const pad = 8;
+    let top = r.bottom - 14;
+    if (top + size > innerHeight - pad) top = r.top - size + 14; // 아래 공간이 없으면 위로
+    preview.style.left = Math.max(pad, Math.min(r.left + 10, innerWidth - preview.offsetWidth - pad)) + 'px';
+    preview.style.top = Math.max(pad, top) + 'px';
   }
 
-  function showPreview(card, x, y, touch) {
+  function showPreview(card) {
+    if (previewCard && previewCard !== card) previewCard.classList.remove('previewing');
     previewCard = card;
+    card.classList.add('previewing');
     const img = preview.querySelector('img');
     const count = Number(card.dataset.count) || 1;
-    preview.querySelector('.preview-count').textContent = count > 1 ? `+${count - 1}` : '';
-    preview.querySelector('.preview-count').hidden = count < 2;
-    if (img.getAttribute('src') !== card.dataset.thumb) {
-      img.src = card.dataset.thumb;
-      img.onload = () => { if (previewCard === card) placePreview(x, y, touch); };
-    }
+    const badge = preview.querySelector('.preview-count');
+    badge.textContent = `+${count - 1}`;
+    badge.hidden = count < 2;
+    if (img.getAttribute('src') !== card.dataset.thumb) img.src = card.dataset.thumb;
     preview.hidden = false;
-    placePreview(x, y, touch);
+    placePreview(card);
   }
 
   function hidePreview() {
+    previewCard?.classList.remove('previewing');
     previewCard = null;
     preview.hidden = true;
   }
 
-  const canHover = matchMedia('(hover: hover) and (pointer: fine)').matches;
-  if (canHover) {
-    view.addEventListener('mouseover', (e) => {
-      const card = e.target.closest('.post-card[data-thumb]');
-      if (card && card !== previewCard) showPreview(card, e.clientX, e.clientY, false);
-    });
-    view.addEventListener('mousemove', (e) => {
-      if (previewCard) placePreview(e.clientX, e.clientY, false);
-    });
-    view.addEventListener('mouseout', (e) => {
-      if (previewCard && !previewCard.contains(e.relatedTarget)) hidePreview();
-    });
-  }
+  // PC: 마우스를 올리면 바로
+  view.addEventListener('pointerover', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const card = e.target.closest('.post-card[data-thumb]');
+    if (card && card !== previewCard) showPreview(card);
+  });
+  view.addEventListener('pointerout', (e) => {
+    if (e.pointerType !== 'mouse' || !previewCard) return;
+    if (!previewCard.contains(e.relatedTarget)) hidePreview();
+  });
 
+  // 휴대폰: 손가락을 대고 있으면 뜨고, 떼거나 스크롤하면 사라진다. 짧게 누르면 그대로 글이 열린다
   let pressTimer = null;
   let pressStart = null;
   let suppressClick = false;
@@ -806,13 +795,9 @@
     const card = e.target.closest('.post-card[data-thumb]');
     if (!card || e.touches.length > 1) return;
     const t = e.touches[0];
-    pressStart = { x: t.clientX, y: t.clientY };
+    pressStart = { x: t.clientX, y: t.clientY, at: Date.now() };
     clearTimeout(pressTimer);
-    pressTimer = setTimeout(() => {
-      suppressClick = true;
-      showPreview(card, pressStart.x, pressStart.y, true);
-      navigator.vibrate?.(15);
-    }, 380);
+    pressTimer = setTimeout(() => showPreview(card), 120); // 스크롤하려고 스치는 손가락에는 안 뜨게 살짝 기다린다
   }, { passive: true });
   view.addEventListener('touchmove', (e) => {
     if (!pressStart) return;
@@ -825,17 +810,18 @@
   }, { passive: true });
   const endPress = () => {
     clearTimeout(pressTimer);
+    // 오래 눌러서 미리보기만 본 경우에는 손을 뗄 때 글이 열리지 않게 한다
+    if (pressStart && previewCard && Date.now() - pressStart.at > 500) suppressClick = true;
     pressStart = null;
-    if (previewCard) hidePreview();
+    setTimeout(hidePreview, suppressClick ? 0 : 150);
   };
   view.addEventListener('touchend', endPress);
   view.addEventListener('touchcancel', endPress);
-  // 길게 눌러 미리보기를 봤으면 손을 뗄 때 글이 열리지 않게 한다
   view.addEventListener('click', (e) => {
     if (suppressClick) { suppressClick = false; e.preventDefault(); e.stopPropagation(); }
   }, true);
   view.addEventListener('contextmenu', (e) => {
-    if (e.target.closest('.post-card[data-thumb]') && !canHover) e.preventDefault();
+    if (e.target.closest('.post-card[data-thumb]') && e.pointerType !== 'mouse' && !matchMedia('(hover: hover)').matches) e.preventDefault();
   });
   view.addEventListener('scroll', hidePreview, { passive: true });
 
