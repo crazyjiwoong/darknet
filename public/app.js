@@ -65,6 +65,18 @@
     return state.categories.find((c) => c.id === id)?.name || id;
   }
 
+  function catColor(id) {
+    return state.categories.find((c) => c.id === id)?.color || 'var(--pink-text)';
+  }
+
+  // 말머리 라벨 (색은 서버가 준 값만 쓴다)
+  function catLabel(id, link) {
+    const style = `style="color:${esc(catColor(id))}"`;
+    return link
+      ? `<a class="cat-label" href="#/b/${esc(id)}" ${style}>${esc(catName(id))}</a>`
+      : `<span class="cat-label" ${style}>${esc(catName(id))}</span>`;
+  }
+
   async function api(path, opts = {}) {
     const sep = path.includes('?') ? '&' : '?';
     const res = await fetch(`/api${path}${sep}voter=${encodeURIComponent(state.voter)}`, {
@@ -169,7 +181,7 @@
   function renderAd() {
     const ad = ADS[adIndex];
     $('#ads').innerHTML = `
-      <a class="ad ${ad.cls}" href="#/b/ad" title="홍보 게시판으로">
+      <a class="ad ${ad.cls}" href="#/b/promo" title="홍보 글 보기">
         <span class="ad-label">AD</span>
         <div class="ad-top">${ad.top}</div>
         <div class="ad-emoji">${ad.emoji}</div>
@@ -222,7 +234,14 @@
             <span><b>회원가입</b>선택</span>
           </div>
         </section>`
-      : `<div class="board-head"><h2>${esc(q ? `"${q}" 검색 결과` : catName(cat))}</h2><span id="countLabel"></span></div>`;
+      : `<div class="board-head"><h2>${q ? esc(`"${q}" 검색 결과`) : catLabel(cat)}</h2><span id="countLabel"></span></div>
+         ${cat ? `<p class="board-desc">${esc(state.categories.find((c) => c.id === cat)?.desc || '')}</p>` : ''}`;
+
+    // 디시 갤러리 말머리 탭
+    const tabs = `<nav class="head-tabs" aria-label="말머리">
+        <a class="head-tab${!cat ? ' on' : ''}" href="#/">전체</a>
+        ${state.categories.map((c) => `<a class="head-tab${c.id === cat ? ' on' : ''}" href="#/b/${esc(c.id)}" style="--tab:${esc(c.color)}">${esc(c.name)}</a>`).join('')}
+      </nav>`;
 
     view.innerHTML = `${hero}
       <div class="toolbar">
@@ -232,6 +251,7 @@
           <a class="write-btn" href="#/write${cat ? '?cat=' + cat : ''}">${icon.pen}<span>글쓰기</span></a>
         </div>
       </div>
+      ${q ? '' : tabs}
       <div class="list${state.compact ? ' compact' : ''}" id="list"><div class="empty">불러오는 중…</div></div>`;
 
     view.querySelectorAll('[data-sort]').forEach((b) => {
@@ -258,9 +278,10 @@
     }
     $('#list').innerHTML = posts.map((p) => {
       const read = state.read.has(p.id);
-      return `<a class="post-card${read ? ' read' : ''}" href="#/p/${p.id}">
+      const notice = p.category === 'notice' && !cat;
+      return `<a class="post-card${read ? ' read' : ''}${notice ? ' notice' : ''}" href="#/p/${p.id}">
         <div class="post-main">
-          <div class="post-cat"><span class="avatar"></span>${esc(catName(p.category))}<small>${esc(p.nick)} · ${timeAgo(p.createdAt)}</small></div>
+          <div class="post-cat"><span class="avatar"></span>${notice ? '📌 ' : ''}${catLabel(p.category)}<small>${esc(p.nick)} · ${timeAgo(p.createdAt)}</small></div>
           <div class="post-title">${esc(p.title)}</div>
           ${voteStats(p, { comments: p.commentCount })}
         </div>
@@ -312,7 +333,7 @@
     view.innerHTML = `
       <article class="detail">
         <div class="detail-head">
-          <div class="post-cat"><span class="avatar"></span><a href="#/b/${esc(p.category)}">${esc(catName(p.category))}</a></div>
+          <div class="post-cat"><span class="avatar"></span>${catLabel(p.category, true)}</div>
           <div class="author">${esc(p.nick)}<time>${timeAgo(p.createdAt)} · 조회 ${p.views}</time></div>
           <button type="button" class="back-btn" id="btnBack" aria-label="뒤로">${icon.back}</button>
         </div>
@@ -499,7 +520,8 @@
   function renderWrite({ cat }) {
     renderDrawer('');
     setTitle('글쓰기');
-    let category = state.categories.some((c) => c.id === cat) ? cat : 'daily';
+    const usable = state.categories.filter((c) => !c.locked);
+    let category = usable.some((c) => c.id === cat) ? cat : 'general';
     let reward = '';
 
     view.innerHTML = `
@@ -509,8 +531,10 @@
           <button type="button" class="back-btn" id="btnBack" aria-label="뒤로">${icon.back}</button>
         </div>
         <form class="form" id="writeForm">
-          <div class="label">게시판</div>
+          <div class="label">말머리</div>
           <div class="chips" id="catChips"></div>
+          <div class="cat-desc" id="catDesc"></div>
+          <input class="field" name="adminPassword" type="password" maxlength="64" placeholder="관리자 비밀번호 (공지 작성용)" hidden>
           <input class="field" name="title" maxlength="80" placeholder="제목" required>
           <textarea class="field" name="body" maxlength="5000" placeholder="내용을 입력하세요. 익명성은 보장됩니다(아마도)." style="min-height:200px" required></textarea>
           <div class="label">스포일러 (선택)</div>
@@ -530,9 +554,14 @@
       </article>`;
 
     const drawChips = () => {
-      $('#catChips').innerHTML = state.categories
-        .map((c) => `<button type="button" class="chip${c.id === category ? ' on' : ''}" data-cat="${c.id}">${esc(c.name)}</button>`)
+      $('#catChips').innerHTML = usable
+        .map((c) => `<button type="button" class="chip${c.id === category ? ' on' : ''}" data-cat="${esc(c.id)}"><span class="dot" style="background:${esc(c.color)}"></span>${esc(c.name)}</button>`)
         .join('');
+      const cur = usable.find((c) => c.id === category);
+      $('#catDesc').textContent = cur?.desc || '';
+      const admin = $('#writeForm [name=adminPassword]');
+      admin.hidden = !cur?.admin;
+      admin.required = !!cur?.admin;
       $('#rewardChips').innerHTML = [['', { emoji: '✖', label: '없음' }], ...Object.entries(REWARDS)]
         .map(([id, r]) => `<button type="button" class="chip${id === reward ? ' on' : ''}" data-reward="${id}"><span class="emo">${r.emoji}</span>${esc(r.label)}</button>`)
         .join('');
@@ -562,6 +591,7 @@
             title: fd.get('title'),
             body: fd.get('body'),
             spoiler: fd.get('spoiler'),
+            adminPassword: fd.get('adminPassword') || undefined,
             nick: fd.get('nick'),
             password: fd.get('password'),
           },

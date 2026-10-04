@@ -283,6 +283,31 @@ svg { display: block; }
 .board-head h2 { margin: 0; font-family: var(--font-round); font-weight: 400; font-size: 24px; }
 .board-head span { color: var(--muted); font-size: 13px; font-weight: 700; }
 
+/* ---------- 말머리 탭 (디시 갤러리 스타일) ---------- */
+.head-tabs {
+  display: flex; gap: 6px;
+  overflow-x: auto;
+  margin: -2px 0 12px;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #5a4c54 transparent;
+}
+.head-tab {
+  flex: none;
+  height: 30px; padding: 0 13px;
+  display: flex; align-items: center;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  font-weight: 700; font-size: 13px; color: var(--text-dim);
+}
+.head-tab:hover { border-color: var(--tab, var(--pink)); color: #fff; }
+.head-tab.on { border-color: var(--tab, var(--pink)); background: var(--tab, var(--pink)); color: #2b2529; }
+.board-desc { margin: -6px 4px 12px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.cat-label { font-weight: 900; }
+.cat-desc { margin: -2px 4px 0; color: var(--muted); font-size: 12.5px; font-weight: 500; min-height: 1em; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+
 /* ---------- 글 카드 ---------- */
 .post-card {
   position: relative;
@@ -297,6 +322,7 @@ svg { display: block; }
 }
 .post-card:hover { border-color: var(--pink); transform: translateY(-1px); }
 .post-card.read { border-color: #6e5c67; }
+.post-card.notice { border-color: #ff6b8b; background: linear-gradient(180deg, #4a2f3a, #3a2830); }
 .post-main { flex: 1; min-width: 0; }
 .post-cat {
   display: flex; align-items: center; gap: 8px;
@@ -521,7 +547,7 @@ textarea.field { resize: vertical; min-height: 80px; line-height: 1.55; }
 .ad-top, .ad-bottom { position: absolute; left: 10px; right: 10px; font-family: var(--font-poster); text-align: center; line-height: 1.15; }
 .ad-top { top: 26px; font-size: 22px; }
 .ad-bottom { bottom: 18px; font-size: 26px; }
-.ad-emoji { position: absolute; left: 0; right: 0; top: 42%; transform: translateY(-50%); text-align: center; font-size: 84px; filter: drop-shadow(0 6px 0 rgba(0,0,0,.25)); }
+.ad-emoji { position: absolute; left: 0; right: 0; top: 38%; transform: translateY(-50%); text-align: center; font-size: 68px; filter: drop-shadow(0 6px 0 rgba(0,0,0,.25)); }
 .ad-small { position: absolute; left: 8px; right: 8px; bottom: 116px; text-align: center; font-size: 12px; font-weight: 700; opacity: .9; }
 
 .ad.city {

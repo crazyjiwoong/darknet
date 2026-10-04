@@ -9,14 +9,23 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
+// 말머리 (디시 갤러리처럼 글 종류를 나눈다)
 const CATEGORIES = [
-  { id: 'daily', name: '일상생활' },
-  { id: 'curious', name: '궁금해요' },
-  { id: 'novel', name: '소설' },
-  { id: 'qna', name: '질문답변' },
-  { id: 'jobs', name: '채용공고' },
-  { id: 'ad', name: '홍보' },
+  { id: 'notice', name: '공지', color: '#ff6b8b', desc: '운영자 공지 (관리자 비밀번호 필요)', admin: true },
+  { id: 'general', name: '일반', color: '#c9b8c2', desc: '잡담, 일상, 아무 얘기' },
+  { id: 'ballfic', name: '볼문학', color: '#ff9fd6', desc: '사도들 볼따구가 나오는 팬 문학, 연재 소설' },
+  { id: 'info', name: '정보', color: '#7fd4ff', desc: '알아두면 좋은 정보, 공략, 팁' },
+  { id: 'question', name: '질문', color: '#ffd166', desc: '궁금한 건 다크넷 선배들에게' },
+  { id: 'humor', name: '유머', color: '#9df29a', desc: '웃긴 글. 웃음은 VVVV' },
+  { id: 'creative', name: '창작', color: '#c7a6ff', desc: '그림, 시, 노래 가사 같은 창작물' },
+  { id: 'review', name: '후기', color: '#ffb37a', desc: '가게, 영화, 굿즈 후기' },
+  { id: 'news', name: '뉴스', color: '#8fb8ff', desc: '엘리아스 소식, 모나티엄 시청 발표' },
+  { id: 'jobs', name: '채용', color: '#a5e8d4', desc: '구인, 구직, 알바' },
+  { id: 'promo', name: '홍보', color: '#f7a6a6', desc: '가게, 방송, 굿즈 홍보' },
 ];
+// 예전 게시판 id → 새 말머리 id
+const LEGACY_CATEGORY = { daily: 'general', curious: 'question', novel: 'ballfic', qna: 'question', ad: 'promo' };
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const CATEGORY_IDS = new Set(CATEGORIES.map((c) => c.id));
 const REWARDS = new Set(['', 'gold', 'drink', 'candy', 'bread']);
 
@@ -29,6 +38,7 @@ let db = { seq: 0, posts: [] };
 function loadDb() {
   if (fs.existsSync(DB_FILE)) {
     db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    for (const p of db.posts) p.category = LEGACY_CATEGORY[p.category] || p.category;
     return;
   }
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -78,6 +88,13 @@ function checkPassword(pw, stored) {
   const [salt, hash] = stored.split(':');
   const test = crypto.scryptSync(pw, salt, 32);
   return crypto.timingSafeEqual(test, Buffer.from(hash, 'hex'));
+}
+
+function isAdmin(pw) {
+  if (!ADMIN_PASSWORD || typeof pw !== 'string') return false;
+  const a = crypto.createHash('sha256').update(pw).digest();
+  const b = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest();
+  return crypto.timingSafeEqual(a, b);
 }
 
 // ---------- 직렬화 ----------
@@ -214,7 +231,7 @@ async function api(req, res, url) {
   const voter = voterId(url.searchParams.get('voter'));
 
   if (m === 'GET' && parts[0] === 'categories' && parts.length === 1) {
-    return send(res, 200, CATEGORIES);
+    return send(res, 200, CATEGORIES.map((c) => ({ ...c, locked: !!c.admin && !ADMIN_PASSWORD })));
   }
 
   if (parts[0] !== 'posts') throw new HttpError(404, '없는 경로');
@@ -234,10 +251,13 @@ async function api(req, res, url) {
           p.nick.toLowerCase().includes(q),
       );
     }
+    // 공지는 전체 목록 맨 위에 고정
+    const pinned = !cat ? list.filter((p) => p.category === 'notice').sort((a, b) => b.createdAt - a.createdAt) : [];
+    if (pinned.length) list = list.filter((p) => p.category !== 'notice');
     if (sort === 'new') list.sort((a, b) => b.createdAt - a.createdAt);
     else if (sort === 'hot') list.sort((a, b) => hotScore(b) - hotScore(a));
     else list.sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt);
-    return send(res, 200, list.map((p) => publicPost(p, voter, false)));
+    return send(res, 200, [...pinned, ...list].map((p) => publicPost(p, voter, false)));
   }
 
   // POST /api/posts
@@ -245,7 +265,7 @@ async function api(req, res, url) {
     const b = await readJson(req);
     const post = {
       id: 0,
-      category: CATEGORY_IDS.has(b.category) ? b.category : 'daily',
+      category: CATEGORY_IDS.has(b.category) ? b.category : 'general',
       title: str(b.title, LIMITS.title, '제목'),
       body: str(b.body, LIMITS.body, '내용'),
       nick: str(b.nick, LIMITS.nick, '닉네임'),
@@ -258,6 +278,9 @@ async function api(req, res, url) {
       down: [],
       comments: [],
     };
+    if (post.category === 'notice' && !isAdmin(b.adminPassword)) {
+      throw new HttpError(403, '공지는 운영자만 쓸 수 있습니다');
+    }
     throttle(req, 'post', 5000);
     post.id = nextId();
     db.posts.push(post);
