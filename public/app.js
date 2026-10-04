@@ -138,7 +138,6 @@
   }
 
   function setTitle(t) {
-    $('#tabTitle').textContent = t;
     document.title = t === '다크넷' ? '다크넷' : `${t} - 다크넷`;
   }
 
@@ -821,15 +820,6 @@
     $('#nickLabel').textContent = nick;
     toast('닉네임이 바뀌었습니다');
     if (current) drawPost();
-  };
-
-  $('#btnMinimize').onclick = () => {
-    $('#window').classList.add('minimized');
-    $('#btnRestore').hidden = false;
-  };
-  $('#btnRestore').onclick = () => {
-    $('#window').classList.remove('minimized');
-    $('#btnRestore').hidden = true;
   };
 
   document.addEventListener('keydown', (e) => {

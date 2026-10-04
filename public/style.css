@@ -50,110 +50,21 @@ a { color: inherit; text-decoration: none; }
 svg { display: block; }
 [hidden] { display: none !important; }
 
-/* ---------- 배경 (게임 화면 뒤 격자) ---------- */
-.stage {
-  min-height: 100%;
-  padding: 26px 24px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  background:
-    radial-gradient(1000px 500px at 50% -10%, rgba(140, 70, 150, .35), transparent 70%),
-    linear-gradient(rgba(255, 170, 230, .045) 1px, transparent 1px) 0 0 / 32px 32px,
-    linear-gradient(90deg, rgba(255, 170, 230, .045) 1px, transparent 1px) 0 0 / 32px 32px,
-    #1c1620;
-}
-
-/* ---------- 창 ---------- */
-.window {
-  width: min(1180px, 100%);
-  height: calc(100vh - 52px);
-  min-height: 560px;
-  display: flex;
-  flex-direction: column;
-  background: var(--frame);
-  border: 3px solid var(--frame-light);
-  border-radius: 14px;
-  padding: 0 9px 9px;
-  box-shadow:
-    0 0 0 2px var(--frame-dark),
-    0 0 22px var(--glow),
-    0 0 60px rgba(255, 110, 205, .25);
-}
-.window.minimized { display: none; }
-
-.tabbar {
-  height: 46px;
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  padding-top: 6px;
-}
-.tab-collapse {
-  width: 28px; height: 28px;
-  margin: 0 0 8px 2px;
-  border-radius: 7px;
-  border: 0;
-  background: #f0d6e7;
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12);
-  display: grid; place-items: center;
-}
-.tab-collapse svg {
-  width: 16px; height: 16px;
-  fill: none; stroke: #3a2f35; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round;
-}
-
-/* 아래쪽이 본문으로 이어지는 탭 */
-.tab {
-  position: relative;
-  height: 38px;
-  min-width: 190px;
-  max-width: 260px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px 0 14px;
-  background: var(--bg);
-  border-radius: 12px 12px 0 0;
-  font-weight: 800;
-  font-size: 14px;
-  color: var(--text);
-}
-.tab::after {
-  content: '';
-  position: absolute; bottom: 0; right: -12px;
-  width: 12px; height: 12px;
-  background: radial-gradient(circle at 100% 0, transparent 11.5px, var(--bg) 12px);
-}
-.tab-bell {
-  width: 18px; height: 18px; flex: none;
-  padding: 2.5px;
-  border-radius: 50%;
-  border: 1.5px solid #d9cbd4;
-  fill: #f2e9f0;
-}
-.tab-title { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.tab-x { color: #9a8a93; font-size: 20px; line-height: 1; font-weight: 400; }
-.tab-x:hover { color: #fff; }
-.window-close {
-  margin-left: auto;
-  margin-bottom: 7px;
-  width: 32px; height: 32px;
-  display: grid; place-items: center;
-}
-.window-close svg { width: 24px; height: 24px; fill: none; stroke: #1d171a; stroke-width: 4.2; stroke-linecap: round; }
-
+/* 화면 전체를 쓰는 앱 (넓은 화면에서는 가운데 정렬) */
 .inner {
   position: relative;
-  flex: 1;
-  min-height: 0;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
-  border-radius: 0 10px 10px 10px;
-  box-shadow: inset 0 0 0 2px #221c1f;
+  background:
+    linear-gradient(rgba(255, 170, 230, .035) 1px, transparent 1px) 0 0 / 26px 26px,
+    linear-gradient(90deg, rgba(255, 170, 230, .035) 1px, transparent 1px) 0 0 / 26px 26px,
+    var(--bg);
   overflow: hidden;
 }
+.topbar { background: var(--bg); }
+.topbar, .content { width: 100%; max-width: 1200px; margin: 0 auto; }
 
 /* ---------- 헤더 ---------- */
 .topbar {
@@ -244,9 +155,6 @@ svg { display: block; }
   display: flex;
   gap: 18px;
   padding: 14px 16px 0;
-  background:
-    linear-gradient(rgba(255, 170, 230, .035) 1px, transparent 1px) 0 0 / 26px 26px,
-    linear-gradient(90deg, rgba(255, 170, 230, .035) 1px, transparent 1px) 0 0 / 26px 26px;
 }
 .view-wrap { position: relative; flex: 1; min-width: 0; display: flex; }
 .view {
@@ -745,27 +653,12 @@ textarea.field { resize: vertical; min-height: 80px; line-height: 1.55; }
   max-width: calc(100% - 32px);
 }
 
-.restore {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 20px;
-  border-radius: 999px;
-  border: 3px solid var(--frame-light);
-  background: var(--frame);
-  color: #2b2529;
-  font-size: 18px; font-weight: 800;
-  box-shadow: 0 0 20px var(--glow);
-}
-.restore img { width: 30px; }
 
 /* ---------- 반응형 ---------- */
 @media (max-width: 900px) {
   .ads { display: none; }
 }
 @media (max-width: 640px) {
-  .stage { padding: 8px; }
-  .window { height: calc(100vh - 16px); padding: 0 5px 5px; border-radius: 12px; }
-  .tab { min-width: 0; flex: 1; }
   .topbar { flex-wrap: wrap; gap: 8px; padding: 8px 10px 10px; }
   .topbar::after { left: 10px; right: 10px; }
   .search { order: 3; flex-basis: 100%; max-width: none; }

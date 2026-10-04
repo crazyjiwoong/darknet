@@ -10,55 +10,32 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="stage">
-    <div class="window" id="window">
-      <!-- 상단 탭 바 -->
-      <div class="tabbar">
-        <button class="tab-collapse" id="btnMinimize" title="최소화" aria-label="최소화">
-          <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-        </button>
-        <div class="tab">
-          <svg class="tab-bell" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zm0 18a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 21z"/></svg>
-          <span class="tab-title" id="tabTitle">다크넷</span>
-          <a class="tab-x" href="#/" aria-label="탭 닫기">×</a>
-        </div>
-        <a class="window-close" href="#/" aria-label="홈으로">
-          <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" /></svg>
-        </a>
-      </div>
+  <div class="inner">
+    <!-- 헤더 -->
+    <header class="topbar">
+      <button class="icon-btn" id="btnMenu" aria-label="게시판 메뉴">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+      </button>
+      <a class="brand" href="#/">
+        <img src="assets/ghost.svg" alt="" class="brand-ghost">
+        <img src="assets/darknet-wordmark-light.svg" alt="다크넷 DARKNET" class="brand-wordmark">
+      </a>
+      <form class="search" id="searchForm" role="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></svg>
+        <input id="searchInput" type="search" placeholder="진실을 마주하자" autocomplete="off">
+      </form>
+      <button class="me" id="btnNick" title="닉네임 바꾸기">
+        <span class="avatar"></span>
+        <span id="nickLabel">지나가던엘프</span>
+      </button>
+    </header>
 
-      <div class="inner">
-        <!-- 헤더 -->
-        <header class="topbar">
-          <button class="icon-btn" id="btnMenu" aria-label="게시판 메뉴">
-            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-          </button>
-          <a class="brand" href="#/">
-            <img src="assets/ghost.svg" alt="" class="brand-ghost">
-            <img src="assets/darknet-wordmark-light.svg" alt="다크넷 DARKNET" class="brand-wordmark">
-          </a>
-          <form class="search" id="searchForm" role="search">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></svg>
-            <input id="searchInput" type="search" placeholder="진실을 마주하자" autocomplete="off">
-          </form>
-          <button class="me" id="btnNick" title="닉네임 바꾸기">
-            <span class="avatar"></span>
-            <span id="nickLabel">지나가던엘프</span>
-          </button>
-        </header>
-
-        <div class="content">
-          <div class="view-wrap">
-            <main id="view" class="view"></main>
-          </div>
-          <aside class="ads" id="ads" aria-label="광고"></aside>
-        </div>
+    <div class="content">
+      <div class="view-wrap">
+        <main id="view" class="view"></main>
       </div>
+      <aside class="ads" id="ads" aria-label="광고"></aside>
     </div>
-
-    <button class="restore" id="btnRestore" hidden>
-      <img src="assets/ghost.svg" alt=""> 다크넷
-    </button>
   </div>
 
   <!-- 게시판 메뉴 -->
