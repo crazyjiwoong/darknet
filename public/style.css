@@ -423,36 +423,6 @@ button.stat:hover { background: rgba(255, 255, 255, .07); color: var(--text-dim)
 .stat-more { letter-spacing: 1.5px; font-size: 15px; line-height: 1; }
 .stat-who { margin-left: auto; color: #6c5c65; font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
-/* 보상 아이템 타일 */
-.reward-wrap { position: relative; flex: none; }
-.reward {
-  position: relative;
-  width: 58px; height: 56px; flex: none;
-  border-radius: 9px;
-  display: grid; place-items: center;
-  font-size: 28px;
-  background-size: cover;
-  box-shadow: 0 0 0 1.5px rgba(255, 240, 225, .35), 0 3px 0 rgba(0, 0, 0, .35);
-  overflow: hidden;
-}
-.reward.gold { background-image: url('assets/reward-gold.png'); }
-.reward.drink { background-image: url('assets/reward-drink.png'); }
-.reward.candy { background: radial-gradient(ellipse at 50% 92%, rgba(255,255,255,.75) 0 30%, transparent 32%), linear-gradient(#ffe0f1, #f5b3d9); }
-.reward.bread { background: radial-gradient(ellipse at 50% 92%, rgba(255,255,255,.75) 0 30%, transparent 32%), linear-gradient(#f9ecc7, #e9cf8d); }
-.reward-emoji { margin-top: -6px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.2)); }
-.reward-count {
-  position: absolute; bottom: 1px; left: 0; right: 0;
-  text-align: center;
-  font-size: 11px; font-weight: 800; color: #2a2226;
-  text-shadow: 0 0 2px #fff, 0 0 2px #fff;
-}
-.reward.claimed { filter: saturate(.55) brightness(.55); }
-.reward-check {
-  position: absolute; inset: 0;
-  display: grid; place-items: center;
-}
-.reward-check svg { width: 34px; height: 34px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
-
 /* 안 읽은 글: 하트 말풍선 */
 .heart {
   position: absolute; top: -15px; right: -5px;
@@ -474,8 +444,6 @@ button.stat:hover { background: rgba(255, 255, 255, .07); color: var(--text-dim)
 .list.compact .post-card { min-height: 0; padding: 8px 14px; margin-bottom: 8px; border-width: 2px; }
 .list.compact .post-cat { display: none; }
 .list.compact .post-title { margin: 0 0 4px; font-size: 16px; }
-.list.compact .reward { width: 38px; height: 37px; font-size: 18px; }
-.list.compact .reward-count { display: none; }
 .list.compact .heart { display: none; }
 
 .empty {
@@ -631,8 +599,6 @@ textarea.field { resize: vertical; min-height: 80px; line-height: 1.55; }
   display: flex; align-items: center; gap: 6px;
 }
 .chip.on { border-color: var(--pink); background: #4a3443; color: #fff; }
-.chip .emo { font-size: 16px; }
-.chip .emo img { width: 18px; height: 18px; border-radius: 4px; display: block; }
 
 /* ---------- 광고 ---------- */
 .ad {
@@ -811,7 +777,6 @@ textarea.field { resize: vertical; min-height: 80px; line-height: 1.55; }
   .post-title { font-size: 17px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .stats { gap: 14px; font-size: 12px; }
   .stat-who { display: none; }
-  .reward { width: 48px; height: 46px; font-size: 22px; }
   .hot-badge { width: 52px; padding: 4px; }
   .hot-label { display: none; }
   .heart { right: -2px; }

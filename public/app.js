@@ -46,13 +46,6 @@
     { id: 'all', label: '전체' },
   ];
 
-  const REWARDS = {
-    gold: { emoji: '🪙', label: '골드', count: '30K', image: 'assets/reward-gold.png' },
-    drink: { emoji: '🥤', label: '음료', count: '1', image: 'assets/reward-drink.png' },
-    candy: { emoji: '🍬', label: '사탕', count: '3' },
-    bread: { emoji: '🍞', label: '빵', count: '1' },
-  };
-
   // ---------- 유틸 ----------
   const $ = (sel, root = document) => root.querySelector(sel);
   const view = $('#view');
@@ -159,7 +152,6 @@
     back: '<svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
     best: '<svg viewBox="0 0 24 24"><path d="M12.5 2C9 6.5 5.5 10 5.5 14.6a6.6 6.6 0 0 0 13.2 0c0-2.4-1.2-4.4-2.8-6 .3 2.3-.9 4.1-2.9 4.1a2.8 2.8 0 0 1-2.8-2.9c0-2.6 1.3-4.9 2.3-7.8z"/></svg>',
     pin: '<svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M13.2 2.5a7.3 7.3 0 0 0-6 11.5L5.3 21.5l6.3-4.3a7.3 7.3 0 1 0 1.6-14.7zm.1 4.4a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8z"/></svg>',
-    check: '<svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L20 7" fill="none" stroke="#2a2226" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 12.5l5 5L20 7" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     pen: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>',
     sparkle: '<svg viewBox="0 0 24 24"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>',
     layoutCard: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>',
@@ -179,16 +171,6 @@
           .map(([k, label]) => `<span class="hot-bar ${k}" style="--w:${Math.min(100, (h[k] / Math.max(h.total, 1)) * 100)}%" title="${label} ${h[k]}"></span>`)
           .join('')}
       </div>
-    </div>`;
-  }
-
-  function rewardTile(post, claimed) {
-    const r = REWARDS[post.reward];
-    if (!r) return '';
-    const inner = r.image ? '' : `<span class="reward-emoji">${r.emoji}</span><span class="reward-count">${esc(r.count)}</span>`;
-    return `<div class="reward-wrap" title="${esc(r.label)} 보상${claimed ? ' (획득함)' : ''}">
-      <div class="reward ${post.reward}${claimed ? ' claimed' : ''}">${inner}</div>
-      ${claimed ? `<div class="reward-check">${icon.check}</div>` : ''}
     </div>`;
   }
 
@@ -318,7 +300,6 @@
           ${voteStats(p, { comments: p.commentCount, views: p.views, who: `${p.nick} · ${timeAgo(p.createdAt)}` })}
         </div>
         ${p.hot ? hotBadge(p.hot) : ''}
-        ${rewardTile(p, read)}
         ${!read ? `<span class="heart" title="안 읽은 글">${icon.heart}</span>` : ''}
       </a>`;
     }).join('');
@@ -336,11 +317,7 @@
       setTitle('다크넷');
       return;
     }
-    const firstVisit = !state.read.has(current.id);
     markRead(current.id);
-    if (firstVisit && countView && REWARDS[current.reward]) {
-      toast(`${REWARDS[current.reward].emoji} ${REWARDS[current.reward].label} 보상을 획득했다!`);
-    }
     renderDrawer(current.category);
     setTitle(current.title);
     drawPost();
@@ -556,7 +533,6 @@
     setTitle('글쓰기');
     const usable = visibleCats();
     let category = usable.some((c) => c.id === cat) ? cat : 'general';
-    let reward = '';
 
     view.innerHTML = `
       <article class="detail write">
@@ -575,8 +551,6 @@
           <div class="img-picker" id="imgPicker"></div>
           <div class="label">스포일러 (선택)</div>
           <textarea class="field" name="spoiler" maxlength="2000" placeholder="'스포일러 보기'를 눌러야 보이는 내용" style="min-height:60px"></textarea>
-          <div class="label">읽은 사람에게 주는 보상 (선택)</div>
-          <div class="chips" id="rewardChips"></div>
           <div class="form-row">
             <input class="field" name="nick" maxlength="20" placeholder="닉네임" value="${esc(state.nick)}" required>
             <input class="field" name="password" type="password" maxlength="64" placeholder="비밀번호 (삭제용)" value="${esc(state.password)}" required>
@@ -598,13 +572,9 @@
       const admin = $('#writeForm [name=adminPassword]');
       admin.hidden = !cur?.admin;
       admin.required = !!cur?.admin;
-      $('#rewardChips').innerHTML = [['', { emoji: '✖', label: '없음' }], ...Object.entries(REWARDS)]
-        .map(([id, r]) => `<button type="button" class="chip${id === reward ? ' on' : ''}" data-reward="${id}"><span class="emo">${r.image ? `<img src="${r.image}" alt="">` : r.emoji}</span>${esc(r.label)}</button>`)
-        .join('');
     };
     drawChips();
     $('#catChips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (b) { category = b.dataset.cat; drawChips(); } };
-    $('#rewardChips').onclick = (e) => { const b = e.target.closest('[data-reward]'); if (b) { reward = b.dataset.reward; drawChips(); } };
 
     // 첨부 이미지 (File 객체) — 등록할 때 줄여서 보낸다
     const files = [];
@@ -659,7 +629,6 @@
           method: 'POST',
           body: {
             category,
-            reward,
             title: fd.get('title'),
             body: fd.get('body'),
             spoiler: fd.get('spoiler'),

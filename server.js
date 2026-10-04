@@ -29,7 +29,6 @@ const LEGACY_CATEGORY = {
 };
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const CATEGORY_IDS = new Set(CATEGORIES.map((c) => c.id));
-const REWARDS = new Set(['', 'gold', 'drink', 'candy', 'bread']);
 
 const LIMITS = { nick: 20, title: 80, body: 5000, spoiler: 2000, comment: 1000, password: 64 };
 
@@ -40,7 +39,10 @@ let db = { seq: 0, posts: [] };
 function loadDb() {
   if (fs.existsSync(DB_FILE)) {
     db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    for (const p of db.posts) p.category = LEGACY_CATEGORY[p.category] || p.category;
+    for (const p of db.posts) {
+      p.category = LEGACY_CATEGORY[p.category] || p.category;
+      delete p.reward;
+    }
     return;
   }
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -205,7 +207,6 @@ function publicPost(p, voter, withBody) {
     category: p.category,
     title: p.title,
     nick: p.nick,
-    reward: p.reward,
     hasSpoiler: !!p.spoiler,
     createdAt: p.createdAt,
     views: p.views,
@@ -377,7 +378,6 @@ async function api(req, res, url) {
       nick: str(b.nick, LIMITS.nick, '닉네임'),
       pw: hashPassword(str(b.password, LIMITS.password, '비밀번호')),
       spoiler: str(b.spoiler, LIMITS.spoiler, '스포일러', { required: false }),
-      reward: REWARDS.has(b.reward) ? b.reward : '',
       createdAt: Date.now(),
       views: 0,
       up: [],
