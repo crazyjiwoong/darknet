@@ -253,10 +253,7 @@
     ];
 
     const hero = !cat && !q
-      ? `<section class="hero" aria-label="다크넷">
-          <img class="hero-ghost" src="assets/ghost.svg" alt="" width="120" height="96">
-          <img class="hero-wordmark" src="assets/darknet-wordmark-light.svg" alt="DARKNET" width="600" height="97">
-        </section>`
+      ? ''
       : `<div class="board-head"><h2>${q ? esc(`"${q}" 검색 결과`) : catLabel(cat)}</h2><span id="countLabel"></span></div>
          ${cat ? `<p class="board-desc">${esc(state.categories.find((c) => c.id === cat)?.desc || '')}</p>` : ''}`;
 
