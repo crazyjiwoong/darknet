@@ -1,0 +1,13 @@
+{
+  "name": "darknet",
+  "version": "1.0.0",
+  "description": "트릭컬 리바이브 다크넷 스타일 익명 커뮤니티",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

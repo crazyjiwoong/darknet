@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>다크넷</title>
+  <meta name="description" content="엘리아스 최대의 익명 커뮤니티, 다크넷">
+  <link rel="icon" href="assets/ghost.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="window" id="window">
+      <!-- 상단 탭 바 -->
+      <div class="tabbar">
+        <button class="tab-collapse" id="btnMinimize" title="최소화" aria-label="최소화">
+          <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        <div class="tab">
+          <svg class="tab-bell" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zm0 18a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 21z"/></svg>
+          <span class="tab-title" id="tabTitle">다크넷</span>
+          <a class="tab-x" href="#/" aria-label="탭 닫기">×</a>
+        </div>
+        <a class="window-close" href="#/" aria-label="홈으로">
+          <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" /></svg>
+        </a>
+      </div>
+
+      <div class="inner">
+        <!-- 헤더 -->
+        <header class="topbar">
+          <button class="icon-btn" id="btnMenu" aria-label="게시판 메뉴">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+          <a class="brand" href="#/">
+            <img src="assets/ghost.svg" alt="" class="brand-ghost">
+            <span>다크넷</span>
+          </a>
+          <form class="search" id="searchForm" role="search">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></svg>
+            <input id="searchInput" type="search" placeholder="진실을 마주하자" autocomplete="off">
+          </form>
+          <button class="me" id="btnNick" title="닉네임 바꾸기">
+            <span class="avatar"></span>
+            <span id="nickLabel">지나가던엘프</span>
+          </button>
+        </header>
+
+        <div class="content">
+          <main id="view" class="view"></main>
+          <aside class="ads" id="ads" aria-label="광고"></aside>
+        </div>
+      </div>
+    </div>
+
+    <button class="restore" id="btnRestore" hidden>
+      <img src="assets/ghost.svg" alt=""> 다크넷
+    </button>
+  </div>
+
+  <!-- 게시판 메뉴 -->
+  <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+  <nav class="drawer" id="drawer" aria-label="게시판">
+    <div class="drawer-head">
+      <img src="assets/ghost.svg" alt=""> 게시판
+    </div>
+    <div id="drawerList"></div>
+    <div class="drawer-foot">운영자: 검고 검은 마스터 게시판 관리장</div>
+  </nav>
+
+  <!-- 모달 -->
+  <div class="modal-backdrop" id="modal" hidden>
+    <form class="modal" id="modalForm">
+      <h3 id="modalTitle"></h3>
+      <p id="modalDesc"></p>
+      <input id="modalInput" autocomplete="off">
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" id="modalCancel">취소</button>
+        <button type="submit" class="btn pink" id="modalOk">확인</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+// 다크넷 프론트엔드 — 해시 라우팅 SPA
+(() => {
+  'use strict';
+
+  // ---------- 상태 ----------
+  const store = {
+    get(key, fallback) {
+      try {
+        const v = localStorage.getItem('darknet.' + key);
+        return v == null ? fallback : JSON.parse(v);
+      } catch {
+        return fallback;
+      }
+    },
+    set(key, value) {
+      try { localStorage.setItem('darknet.' + key, JSON.stringify(value)); } catch {}
+    },
+  };
+
+  const DEFAULT_NICKS = ['지나가던엘프', '익명의엘프', '잘보이는엘프', '신경질적인엘프', 'ㅇㅇ'];
+  const state = {
+    voter: store.get('voter', null),
+    nick: store.get('nick', null),
+    password: store.get('password', ''),
+    sort: store.get('sort', 'best'),
+    compact: store.get('compact', false),
+    read: new Set(store.get('read', [])),
+    categories: [],
+  };
+  if (!state.voter) {
+    state.voter = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
+    store.set('voter', state.voter);
+  }
+  if (!state.nick) {
+    state.nick = DEFAULT_NICKS[Math.floor(Math.random() * DEFAULT_NICKS.length)];
+    store.set('nick', state.nick);
+  }
+
+  const REWARDS = {
+    gold: { emoji: '🪙', label: '골드', count: '30K' },
+    drink: { emoji: '🥤', label: '음료', count: '1' },
+    candy: { emoji: '🍬', label: '사탕', count: '3' },
+    bread: { emoji: '🍞', label: '빵', count: '1' },
+  };
+
+  // ---------- 유틸 ----------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const view = $('#view');
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function timeAgo(t) {
+    const s = Math.max(0, (Date.now() - t) / 1000);
+    if (s < 60) return '방금';
+    if (s < 3600) return Math.floor(s / 60) + '분 전';
+    if (s < 86400) return Math.floor(s / 3600) + '시간 전';
+    if (s < 86400 * 30) return Math.floor(s / 86400) + '일 전';
+    const d = new Date(t);
+    return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
+  }
+
+  function catName(id) {
+    return state.categories.find((c) => c.id === id)?.name || id;
+  }
+
+  async function api(path, opts = {}) {
+    const sep = path.includes('?') ? '&' : '?';
+    const res = await fetch(`/api${path}${sep}voter=${encodeURIComponent(state.voter)}`, {
+      method: opts.method || 'GET',
+      headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+      body: opts.body ? JSON.stringify({ voter: state.voter, ...opts.body }) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '오류가 발생했습니다');
+    return data;
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (el.hidden = true), 2200);
+  }
+
+  // 작은 입력 모달 (prompt 대체)
+  function ask({ title, desc = '', value = '', type = 'text', placeholder = '', ok = '확인' }) {
+    return new Promise((resolve) => {
+      const modal = $('#modal');
+      const input = $('#modalInput');
+      $('#modalTitle').textContent = title;
+      $('#modalDesc').textContent = desc;
+      $('#modalOk').textContent = ok;
+      input.type = type;
+      input.value = value;
+      input.placeholder = placeholder;
+      modal.hidden = false;
+      setTimeout(() => input.focus(), 0);
+      const done = (v) => {
+        modal.hidden = true;
+        $('#modalForm').onsubmit = null;
+        $('#modalCancel').onclick = null;
+        modal.onclick = null;
+        resolve(v);
+      };
+      $('#modalForm').onsubmit = (e) => { e.preventDefault(); done(input.value); };
+      $('#modalCancel').onclick = () => done(null);
+      modal.onclick = (e) => { if (e.target === modal) done(null); };
+    });
+  }
+
+  function markRead(id) {
+    if (state.read.has(id)) return;
+    state.read.add(id);
+    store.set('read', [...state.read].slice(-500));
+  }
+
+  function setTitle(t) {
+    $('#tabTitle').textContent = t;
+    document.title = t === '다크넷' ? '다크넷' : `${t} - 다크넷`;
+  }
+
+  // ---------- 아이콘 ----------
+  const icon = {
+    flame: '<svg viewBox="0 0 24 24"><path d="M12 2c1 4-3 6-3 10a3 3 0 0 0 6 0c0-1-.4-2-1-3 3 1 5 4 5 7a7 7 0 0 1-14 0c0-6 5-8 7-14z"/></svg>',
+    drop: '<svg viewBox="0 0 24 24"><path d="M12 22a6 6 0 0 1-6-6c0-4 6-12 6-12s6 8 6 12a6 6 0 0 1-6 6zm-2.5-6.5a1 1 0 0 0-1 1 3.5 3.5 0 0 0 3.5 3.5 1 1 0 0 0 0-2 1.5 1.5 0 0 1-1.5-1.5 1 1 0 0 0-1-1z"/></svg>',
+    chat: '<svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3 6.5a1.3 1.3 0 1 0 0 .01zm5 0a1.3 1.3 0 1 0 0 .01zm5 0a1.3 1.3 0 1 0 0 .01z"/></svg>',
+    eye: '<svg viewBox="0 0 24 24"><path d="M12 5C6 5 2 12 2 12s4 7 10 7 10-7 10-7-4-7-10-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>',
+    heart: '<svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/></svg>',
+    back: '<svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+    pen: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>',
+    sparkle: '<svg viewBox="0 0 24 24"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>',
+    layoutCard: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>',
+    layoutList: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.3h18M3 14.6h18"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M6 9l6 6 6-6"/></svg>',
+  };
+
+  function rewardTile(post, claimed) {
+    const r = REWARDS[post.reward];
+    if (!r) return '';
+    return `<div class="reward ${post.reward}${claimed ? ' claimed' : ''}" title="${esc(r.label)} 보상${claimed ? ' (획득함)' : ''}">
+      <span>${r.emoji}</span><span class="reward-count">${esc(r.count)}</span>
+    </div>`;
+  }
+
+  function voteStats(item, { comments, interactive, kind, id, menu }) {
+    const tag = interactive ? 'button' : 'span';
+    const attrs = (type) => (interactive ? ` type="button" data-vote="${type}" data-kind="${kind}" data-id="${id}"` : '');
+    return `<div class="stats">
+      <${tag} class="stat${item.myVote === 'up' ? ' on-up' : ''}"${attrs('up')} title="추천">${icon.flame}${item.up}</${tag}>
+      <${tag} class="stat${item.myVote === 'down' ? ' on-down' : ''}"${attrs('down')} title="비추천">${icon.drop}${item.down}</${tag}>
+      ${comments != null ? `<span class="stat" title="댓글">${icon.chat}${comments}</span>` : ''}
+      ${menu || '<span class="stat stat-more">•••</span>'}
+    </div>`;
+  }
+
+  // ---------- 광고 ----------
+  const ADS = [
+    { cls: 'city', top: '미스터리<br>해결해 드립니다', emoji: '💰', small: '고양이 찾기부터 차원 붕괴까지', bottom: '지금 당장<br>의뢰하기' },
+    { cls: 'lab', top: '모나티엄 시청', emoji: '🧪', small: '보수 넉넉 · 부작용 거의 없음(아마도)', bottom: '임상실험<br>참가자 모집' },
+    { cls: 'abyss', top: '위스퍼 오브<br>디 어비스', emoji: '🔮', small: '익명 랜덤 채팅 · 신규 가입 1회 무료', bottom: '심연과 대화하기' },
+    { cls: 'boutique', top: '엘레강스<br>부띠끄', emoji: '👗', small: '다크넷 회원 10% 할인', bottom: '가을 신상 입고' },
+  ];
+  let adIndex = Math.floor(Math.random() * ADS.length);
+  let adTimer;
+  function renderAd() {
+    const ad = ADS[adIndex];
+    $('#ads').innerHTML = `
+      <a class="ad ${ad.cls}" href="#/b/ad" title="홍보 게시판으로">
+        <span class="ad-label">AD</span>
+        <div class="ad-top">${ad.top}</div>
+        <div class="ad-emoji">${ad.emoji}</div>
+        <div class="ad-small">${esc(ad.small)}</div>
+        <div class="ad-bottom">${ad.bottom}</div>
+      </a>
+      <div class="ad-dots">${ADS.map((_, i) => `<button type="button" data-ad="${i}" class="${i === adIndex ? 'on' : ''}" aria-label="광고 ${i + 1}"></button>`).join('')}</div>`;
+    clearInterval(adTimer);
+    adTimer = setInterval(() => { adIndex = (adIndex + 1) % ADS.length; renderAd(); }, 8000);
+  }
+  $('#ads').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ad]');
+    if (b) { adIndex = Number(b.dataset.ad); renderAd(); }
+  });
+
+  // ---------- 서랍 메뉴 ----------
+  function openDrawer(open) {
+    $('#drawer').classList.toggle('open', open);
+    $('#drawerBackdrop').hidden = !open;
+  }
+  function renderDrawer(current) {
+    const links = [{ id: '', name: '전체 글' }, ...state.categories];
+    $('#drawerList').innerHTML = links
+      .map((c) => `<a class="drawer-link${c.id === current ? ' on' : ''}" href="${c.id ? '#/b/' + c.id : '#/'}">${esc(c.name)}<small>${c.id ? '›' : ''}</small></a>`)
+      .join('') + `<a class="drawer-link" href="#/write">✎ 글쓰기</a>`;
+  }
+  $('#btnMenu').onclick = () => openDrawer(true);
+  $('#drawerBackdrop').onclick = () => openDrawer(false);
+  $('#drawerList').onclick = (e) => { if (e.target.closest('a')) openDrawer(false); };
+
+  // ---------- 목록 화면 ----------
+  async function renderList({ cat = '', q = '' }) {
+    renderDrawer(cat);
+    setTitle(q ? `"${q}" 검색` : cat ? catName(cat) : '다크넷');
+    $('#searchInput').value = q;
+
+    const sorts = [
+      { id: 'best', label: 'Best', icon: icon.flame },
+      { id: 'hot', label: 'Hot', icon: icon.flame },
+      { id: 'new', label: 'New', icon: icon.sparkle },
+    ];
+
+    const hero = !cat && !q
+      ? `<section class="hero">
+          <div class="hero-title">다크넷 · DARKNET</div>
+          <img src="assets/darknet-logo.png" alt="DARKNET" width="602" height="97">
+          <div class="hero-info">
+            <span><b>유형</b>온라인 커뮤니티 사이트</span>
+            <span><b>운영자</b>다크불릿</span>
+            <span><b>회원가입</b>선택</span>
+          </div>
+        </section>`
+      : `<div class="board-head"><h2>${esc(q ? `"${q}" 검색 결과` : catName(cat))}</h2><span id="countLabel"></span></div>`;
+
+    view.innerHTML = `${hero}
+      <div class="toolbar">
+        ${sorts.map((s) => `<button type="button" class="sort-btn${state.sort === s.id ? ' on' : ''}" data-sort="${s.id}">${s.icon}${s.label}</button>`).join('')}
+        <div class="toolbar-right">
+          <button type="button" class="layout-btn" id="btnLayout" title="보기 방식 바꾸기">${state.compact ? icon.layoutList : icon.layoutCard}${icon.chevron}</button>
+          <a class="write-btn" href="#/write${cat ? '?cat=' + cat : ''}">${icon.pen}<span>글쓰기</span></a>
+        </div>
+      </div>
+      <div class="list${state.compact ? ' compact' : ''}" id="list"><div class="empty">불러오는 중…</div></div>`;
+
+    view.querySelectorAll('[data-sort]').forEach((b) => {
+      b.onclick = () => { state.sort = b.dataset.sort; store.set('sort', state.sort); renderList({ cat, q }); };
+    });
+    $('#btnLayout').onclick = () => { state.compact = !state.compact; store.set('compact', state.compact); renderList({ cat, q }); };
+
+    const params = new URLSearchParams({ sort: state.sort });
+    if (cat) params.set('cat', cat);
+    if (q) params.set('q', q);
+    let posts;
+    try {
+      posts = await api('/posts?' + params);
+    } catch (e) {
+      $('#list').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+      return;
+    }
+    const count = $('#countLabel');
+    if (count) count.textContent = `글 ${posts.length}개`;
+
+    if (!posts.length) {
+      $('#list').innerHTML = `<div class="empty"><img src="assets/ghost.svg" alt="">아직 글이 없어요. 첫 글을 남겨 보세요!</div>`;
+      return;
+    }
+    $('#list').innerHTML = posts.map((p) => {
+      const read = state.read.has(p.id);
+      return `<a class="post-card${read ? ' read' : ''}" href="#/p/${p.id}">
+        <div class="post-main">
+          <div class="post-cat"><span class="avatar"></span>${esc(catName(p.category))}<small>${esc(p.nick)} · ${timeAgo(p.createdAt)}</small></div>
+          <div class="post-title">${esc(p.title)}</div>
+          ${voteStats(p, { comments: p.commentCount })}
+        </div>
+        ${rewardTile(p, read)}
+        ${!read ? `<span class="heart" title="안 읽은 글">${icon.heart}</span>` : ''}
+      </a>`;
+    }).join('');
+  }
+
+  // ---------- 상세 화면 ----------
+  let current = null; // 현재 보고 있는 글
+
+  async function renderPost(id, { countView = true } = {}) {
+    if (countView) view.innerHTML = '<div class="empty">불러오는 중…</div>';
+    try {
+      current = await api(`/posts/${id}${countView ? '?view=1' : ''}`);
+    } catch (e) {
+      view.innerHTML = `<div class="empty"><img src="assets/ghost.svg" alt="">${esc(e.message)}<br><br><a class="btn ghost" href="#/" style="display:inline-flex;align-items:center">목록으로</a></div>`;
+      setTitle('다크넷');
+      return;
+    }
+    const firstVisit = !state.read.has(current.id);
+    markRead(current.id);
+    if (firstVisit && countView && REWARDS[current.reward]) {
+      toast(`${REWARDS[current.reward].emoji} ${REWARDS[current.reward].label} 보상을 획득했다!`);
+    }
+    renderDrawer(current.category);
+    setTitle(current.title);
+    drawPost();
+    if (countView) view.scrollTop = 0;
+  }
+
+  function drawPost() {
+    const p = current;
+    const top = p.comments.filter((c) => c.parentId == null);
+    const replies = (pid) => p.comments.filter((c) => c.parentId === pid);
+
+    const commentHtml = (c) => `
+      <div class="comment" id="c${c.id}">
+        <div class="who"><span class="avatar"></span>${esc(c.nick)}${c.nick === p.nick ? '<span class="op">글쓴이</span>' : ''}<time>${timeAgo(c.createdAt)}</time></div>
+        <div class="text${c.deleted ? ' deleted' : ''}">${c.deleted ? '삭제된 댓글입니다.' : esc(c.body)}</div>
+        ${c.deleted ? '' : voteStats(c, {
+          interactive: true, kind: 'comment', id: c.id,
+          menu: `<span class="menu-wrap"><button type="button" class="stat stat-more" data-menu="c${c.id}">•••</button></span>`,
+        })}
+        <div class="reply-slot" data-reply-slot="${c.id}"></div>
+      </div>`;
+
+    view.innerHTML = `
+      <article class="detail">
+        <div class="detail-head">
+          <div class="post-cat"><span class="avatar"></span><a href="#/b/${esc(p.category)}">${esc(catName(p.category))}</a></div>
+          <div class="author">${esc(p.nick)}<time>${timeAgo(p.createdAt)} · 조회 ${p.views}</time></div>
+          <button type="button" class="back-btn" id="btnBack" aria-label="뒤로">${icon.back}</button>
+        </div>
+        <h1>${esc(p.title)}</h1>
+        <div class="body">${esc(p.body)}</div>
+        ${voteStats(p, {
+          interactive: true, kind: 'post', id: p.id, comments: p.comments.length,
+          menu: `<span class="menu-wrap"><button type="button" class="stat stat-more" data-menu="post">•••</button></span>`,
+        })}
+        <hr class="divider">
+        ${p.spoiler ? `<button type="button" class="spoiler-bar" id="btnSpoiler">스포일러 보기</button><div class="spoiler-body" id="spoilerBody" hidden>${esc(p.spoiler)}</div>` : ''}
+        <div class="comments-title">댓글 ${p.comments.length}</div>
+        <div id="comments">
+          ${top.length ? top.map((c) => {
+            const rs = replies(c.id);
+            return commentHtml(c) + (rs.length ? `<div class="replies">${rs.map(commentHtml).join('')}</div>` : '');
+          }).join('') : '<div class="empty" style="padding:20px">첫 댓글을 남겨 보세요.</div>'}
+        </div>
+        <hr class="divider">
+        ${commentForm(null)}
+      </article>`;
+
+    $('#btnBack').onclick = () => (history.length > 1 ? history.back() : (location.hash = '#/'));
+    const sp = $('#btnSpoiler');
+    if (sp) sp.onclick = () => {
+      const body = $('#spoilerBody');
+      body.hidden = !body.hidden;
+      sp.textContent = body.hidden ? '스포일러 보기' : '스포일러 숨기기';
+    };
+    bindCommentForm(view.querySelector('form[data-parent=""]'));
+  }
+
+  function commentForm(parentId) {
+    return `<form class="form" data-parent="${parentId ?? ''}">
+      <div class="form-row">
+        <input class="field" name="nick" maxlength="20" placeholder="닉네임" value="${esc(state.nick)}" required>
+        <input class="field" name="password" type="password" maxlength="64" placeholder="비밀번호 (삭제용)" value="${esc(state.password)}" required>
+      </div>
+      <textarea class="field" name="body" maxlength="1000" placeholder="${parentId ? '답글을 입력하세요' : '댓글을 입력하세요'}" required></textarea>
+      <div class="form-actions">
+        <span class="count">0 / 1000</span>
+        ${parentId ? '<button type="button" class="btn ghost" data-cancel>취소</button>' : ''}
+        <button class="btn pink">${parentId ? '답글 등록' : '댓글 등록'}</button>
+      </div>
+    </form>`;
+  }
+
+  function bindCommentForm(form) {
+    const ta = form.querySelector('textarea');
+    const count = form.querySelector('.count');
+    ta.oninput = () => (count.textContent = `${ta.value.length} / 1000`);
+    const cancel = form.querySelector('[data-cancel]');
+    if (cancel) cancel.onclick = () => form.remove();
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const btn = form.querySelector('.btn.pink');
+      btn.disabled = true;
+      try {
+        rememberIdentity(fd.get('nick'), fd.get('password'));
+        current = await api(`/posts/${current.id}/comments`, {
+          method: 'POST',
+          body: {
+            nick: fd.get('nick'),
+            password: fd.get('password'),
+            body: fd.get('body'),
+            parentId: form.dataset.parent ? Number(form.dataset.parent) : null,
+          },
+        });
+        const scroll = view.scrollTop;
+        drawPost();
+        view.scrollTop = scroll;
+        const last = current.comments[current.comments.length - 1];
+        document.getElementById('c' + last.id)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        toast('댓글이 등록되었습니다');
+      } catch (err) {
+        toast(err.message);
+        btn.disabled = false;
+      }
+    };
+  }
+
+  function rememberIdentity(nick, password) {
+    nick = String(nick || '').trim();
+    if (nick && nick !== state.nick) {
+      state.nick = nick;
+      store.set('nick', nick);
+      $('#nickLabel').textContent = nick;
+    }
+    state.password = String(password || '');
+    store.set('password', state.password);
+  }
+
+  // 상세 화면 클릭 처리 (추천/메뉴)
+  view.addEventListener('click', async (e) => {
+    const voteBtn = e.target.closest('[data-vote]');
+    if (voteBtn && current) {
+      const { vote, kind, id } = voteBtn.dataset;
+      try {
+        if (kind === 'post') {
+          const res = await api(`/posts/${current.id}/vote`, { method: 'POST', body: { type: vote } });
+          Object.assign(current, { up: res.up, down: res.down, myVote: res.myVote });
+        } else {
+          current = await api(`/posts/${current.id}/comments/${id}/vote`, { method: 'POST', body: { type: vote } });
+        }
+        const scroll = view.scrollTop;
+        drawPost();
+        view.scrollTop = scroll;
+      } catch (err) {
+        toast(err.message);
+      }
+      return;
+    }
+
+    const menuBtn = e.target.closest('[data-menu]');
+    closeMenus();
+    if (menuBtn && current) {
+      e.stopPropagation();
+      const target = menuBtn.dataset.menu;
+      const isPost = target === 'post';
+      const menu = document.createElement('div');
+      menu.className = 'menu';
+      menu.innerHTML = isPost
+        ? '<button type="button" data-act="copy">링크 복사</button><button type="button" class="danger" data-act="delete">글 삭제</button>'
+        : '<button type="button" data-act="reply">답글 달기</button><button type="button" class="danger" data-act="delete">댓글 삭제</button>';
+      menuBtn.parentElement.appendChild(menu);
+      menu.onclick = (ev) => {
+        const act = ev.target.closest('[data-act]')?.dataset.act;
+        ev.stopPropagation();
+        closeMenus();
+        if (!act) return;
+        if (isPost) postAction(act);
+        else commentAction(act, Number(target.slice(1)));
+      };
+    }
+  });
+  document.addEventListener('click', closeMenus);
+  function closeMenus() {
+    document.querySelectorAll('.menu').forEach((m) => m.remove());
+  }
+
+  async function postAction(act) {
+    if (act === 'copy') {
+      const url = location.origin + location.pathname + '#/p/' + current.id;
+      try { await navigator.clipboard.writeText(url); toast('링크를 복사했습니다'); }
+      catch { toast(url); }
+      return;
+    }
+    const pw = await ask({ title: '글 삭제', desc: '글을 쓸 때 정한 비밀번호를 입력하세요.', type: 'password', value: state.password, ok: '삭제' });
+    if (pw == null) return;
+    try {
+      await api(`/posts/${current.id}`, { method: 'DELETE', body: { password: pw } });
+      toast('글이 삭제되었습니다');
+      location.hash = '#/b/' + current.category;
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
+  async function commentAction(act, cid) {
+    if (act === 'reply') {
+      const slot = view.querySelector(`[data-reply-slot="${cid}"]`);
+      if (slot.firstChild) return;
+      slot.innerHTML = `<div class="reply-box">${commentForm(cid)}</div>`;
+      const form = slot.querySelector('form');
+      bindCommentForm(form);
+      form.querySelector('textarea').focus();
+      return;
+    }
+    const pw = await ask({ title: '댓글 삭제', desc: '댓글을 쓸 때 정한 비밀번호를 입력하세요.', type: 'password', value: state.password, ok: '삭제' });
+    if (pw == null) return;
+    try {
+      current = await api(`/posts/${current.id}/comments/${cid}`, { method: 'DELETE', body: { password: pw } });
+      const scroll = view.scrollTop;
+      drawPost();
+      view.scrollTop = scroll;
+      toast('댓글이 삭제되었습니다');
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
+  // ---------- 글쓰기 화면 ----------
+  function renderWrite({ cat }) {
+    renderDrawer('');
+    setTitle('글쓰기');
+    let category = state.categories.some((c) => c.id === cat) ? cat : 'daily';
+    let reward = '';
+
+    view.innerHTML = `
+      <article class="detail write">
+        <div class="detail-head">
+          <h2><img src="assets/ghost.svg" alt="" width="30"> 새 글 쓰기</h2>
+          <button type="button" class="back-btn" id="btnBack" aria-label="뒤로">${icon.back}</button>
+        </div>
+        <form class="form" id="writeForm">
+          <div class="label">게시판</div>
+          <div class="chips" id="catChips"></div>
+          <input class="field" name="title" maxlength="80" placeholder="제목" required>
+          <textarea class="field" name="body" maxlength="5000" placeholder="내용을 입력하세요. 익명성은 보장됩니다(아마도)." style="min-height:200px" required></textarea>
+          <div class="label">스포일러 (선택)</div>
+          <textarea class="field" name="spoiler" maxlength="2000" placeholder="'스포일러 보기'를 눌러야 보이는 내용" style="min-height:60px"></textarea>
+          <div class="label">읽은 사람에게 주는 보상 (선택)</div>
+          <div class="chips" id="rewardChips"></div>
+          <div class="form-row">
+            <input class="field" name="nick" maxlength="20" placeholder="닉네임" value="${esc(state.nick)}" required>
+            <input class="field" name="password" type="password" maxlength="64" placeholder="비밀번호 (삭제용)" value="${esc(state.password)}" required>
+          </div>
+          <div class="form-actions">
+            <span class="count" id="bodyCount">0 / 5000</span>
+            <button type="button" class="btn ghost" id="btnCancel">취소</button>
+            <button class="btn pink" id="btnSubmit">등록</button>
+          </div>
+        </form>
+      </article>`;
+
+    const drawChips = () => {
+      $('#catChips').innerHTML = state.categories
+        .map((c) => `<button type="button" class="chip${c.id === category ? ' on' : ''}" data-cat="${c.id}">${esc(c.name)}</button>`)
+        .join('');
+      $('#rewardChips').innerHTML = [['', { emoji: '✖', label: '없음' }], ...Object.entries(REWARDS)]
+        .map(([id, r]) => `<button type="button" class="chip${id === reward ? ' on' : ''}" data-reward="${id}"><span class="emo">${r.emoji}</span>${esc(r.label)}</button>`)
+        .join('');
+    };
+    drawChips();
+    $('#catChips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (b) { category = b.dataset.cat; drawChips(); } };
+    $('#rewardChips').onclick = (e) => { const b = e.target.closest('[data-reward]'); if (b) { reward = b.dataset.reward; drawChips(); } };
+
+    const form = $('#writeForm');
+    form.body.oninput = () => ($('#bodyCount').textContent = `${form.body.value.length} / 5000`);
+    const leave = () => (history.length > 1 ? history.back() : (location.hash = '#/'));
+    $('#btnBack').onclick = leave;
+    $('#btnCancel').onclick = leave;
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const btn = $('#btnSubmit');
+      btn.disabled = true;
+      try {
+        rememberIdentity(fd.get('nick'), fd.get('password'));
+        const post = await api('/posts', {
+          method: 'POST',
+          body: {
+            category,
+            reward,
+            title: fd.get('title'),
+            body: fd.get('body'),
+            spoiler: fd.get('spoiler'),
+            nick: fd.get('nick'),
+            password: fd.get('password'),
+          },
+        });
+        markRead(post.id);
+        toast('글이 등록되었습니다');
+        location.replace('#/p/' + post.id);
+      } catch (err) {
+        toast(err.message);
+        btn.disabled = false;
+      }
+    };
+    form.title.focus();
+  }
+
+  // ---------- 라우터 ----------
+  function route() {
+    openDrawer(false);
+    closeMenus();
+    const hash = location.hash.slice(1) || '/';
+    const [path, query] = hash.split('?');
+    const params = new URLSearchParams(query || '');
+    const parts = path.split('/').filter(Boolean);
+
+    if (parts[0] === 'p' && parts[1]) return renderPost(Number(parts[1]));
+    current = null;
+    if (parts[0] === 'write') return renderWrite({ cat: params.get('cat') });
+    if (parts[0] === 'b' && parts[1]) return renderList({ cat: parts[1] });
+    if (parts[0] === 'search') return renderList({ q: params.get('q') || '' });
+    return renderList({});
+  }
+
+  // ---------- 전역 이벤트 ----------
+  $('#searchForm').onsubmit = (e) => {
+    e.preventDefault();
+    const q = $('#searchInput').value.trim();
+    location.hash = q ? '#/search?q=' + encodeURIComponent(q) : '#/';
+  };
+
+  $('#btnNick').onclick = async () => {
+    const v = await ask({ title: '닉네임 바꾸기', desc: '다크넷에서 쓸 닉네임 (20자 이하)', value: state.nick, placeholder: '예: 건전한엘프명15T' });
+    if (v == null) return;
+    const nick = v.trim().slice(0, 20);
+    if (!nick) return toast('닉네임을 입력해 주세요');
+    state.nick = nick;
+    store.set('nick', nick);
+    $('#nickLabel').textContent = nick;
+    toast('닉네임이 바뀌었습니다');
+    if (current) drawPost();
+  };
+
+  $('#btnMinimize').onclick = () => {
+    $('#window').classList.add('minimized');
+    $('#btnRestore').hidden = false;
+  };
+  $('#btnRestore').onclick = () => {
+    $('#window').classList.remove('minimized');
+    $('#btnRestore').hidden = true;
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { openDrawer(false); closeMenus(); }
+  });
+
+  window.addEventListener('hashchange', route);
+
+  // ---------- 시작 ----------
+  $('#nickLabel').textContent = state.nick;
+  renderAd();
+  api('/categories')
+    .then((cats) => { state.categories = cats; })
+    .catch(() => toast('서버에 연결할 수 없습니다'))
+    .finally(route);
+})();
