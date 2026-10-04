@@ -19,6 +19,32 @@ module.exports = function seed(nextId) {
 
   const posts = [
     {
+      category: 'info',
+      nick: '무엇이든대답해드립니다',
+      title: '엘리아스 침공전 때 다크넷 접속 안 됐던 이유',
+      body: '그때 모나티엄 도시 자체가 초기화되면서 엘프넷 전산망이 통째로 내려갔음.\n다크넷도 그 위에 있어서 같이 날아갈 뻔했는데, 모나티엄 시스템이 복원되면서 다시 접속 가능해진 거.\n\n백업은 생활화합시다.',
+      agoH: 24 * 60,
+      up: 58,
+      down: 2,
+      views: 2100,
+      comments: [
+        comment('다크불릿', '…그때 진짜 식은땀 났다', 24 * 60 - 1, 44),
+      ],
+    },
+    {
+      category: 'ballfic',
+      nick: '다크불릿',
+      title: '[볼문학] 다크넷 개설 기념 첫 번째 볼문학',
+      body: '태초에 볼이 있었다.\n그리고 그 볼은 말랑했다.\n\n— 다크넷 1번 글을 기념하며',
+      agoH: 24 * 400,
+      up: 120,
+      down: 5,
+      views: 5000,
+      comments: [
+        comment('이터널불릿', '이게 1번 글이라고…?', 24 * 400 - 2, 60),
+      ],
+    },
+    {
       category: 'guide',
       nick: '탑스핀블레이드',
       title: '[공략] 리그 오브 엘프 브론즈 탈출 공략',

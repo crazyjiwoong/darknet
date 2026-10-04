@@ -104,10 +104,13 @@ function score(p) {
   return p.up.length - p.down.length;
 }
 
+// 핫한 글: 정한 기간 안에 올라온 글 중 반응(추천, 댓글, 조회)이 많은 순
 function hotScore(p) {
-  const hours = (Date.now() - p.createdAt) / 3.6e6;
-  return (score(p) + p.comments.length * 2 + p.views * 0.05) / Math.pow(hours + 2, 1.5);
+  return score(p) + p.comments.length * 2 + p.views * 0.05;
 }
+
+const DAY = 24 * 3.6e6;
+const HOT_PERIODS = { day: DAY, week: 7 * DAY, month: 30 * DAY, year: 365 * DAY, all: Infinity };
 
 function publicPost(p, voter, withBody) {
   const out = {
@@ -255,8 +258,13 @@ async function api(req, res, url) {
     // 공지는 전체 목록 맨 위에 고정
     const pinned = !cat ? list.filter((p) => p.category === 'notice').sort((a, b) => b.createdAt - a.createdAt) : [];
     if (pinned.length) list = list.filter((p) => p.category !== 'notice');
+    if (sort === 'hot') {
+      const span = HOT_PERIODS[url.searchParams.get('period')] ?? HOT_PERIODS.day;
+      const since = Date.now() - span;
+      list = list.filter((p) => p.createdAt >= since);
+    }
     if (sort === 'new') list.sort((a, b) => b.createdAt - a.createdAt);
-    else if (sort === 'hot') list.sort((a, b) => hotScore(b) - hotScore(a));
+    else if (sort === 'hot') list.sort((a, b) => hotScore(b) - hotScore(a) || b.createdAt - a.createdAt);
     else list.sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt);
     return send(res, 200, [...pinned, ...list].map((p) => publicPost(p, voter, false)));
   }

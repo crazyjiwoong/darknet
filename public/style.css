@@ -283,6 +283,26 @@ svg { display: block; }
 .board-head h2 { margin: 0; font-family: var(--font-round); font-weight: 400; font-size: 24px; }
 .board-head span { color: var(--muted); font-size: 13px; font-weight: 700; }
 
+/* ---------- 핫한 글 기간 ---------- */
+.periods {
+  display: flex; gap: 4px;
+  width: fit-content; max-width: 100%;
+  overflow-x: auto;
+  margin: -4px 0 12px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+}
+.period {
+  flex: none;
+  height: 28px; padding: 0 12px;
+  border: 0; border-radius: 8px; background: none;
+  font-weight: 700; font-size: 13px; color: var(--muted);
+}
+.period:hover { color: var(--text-dim); }
+.period.on { background: #ff8a5c; color: #2b2529; }
+
 /* ---------- 말머리 탭 (디시 갤러리 스타일) ---------- */
 .head-tabs {
   display: flex; gap: 6px;

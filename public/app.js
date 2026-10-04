@@ -23,6 +23,7 @@
     nick: store.get('nick', null),
     password: store.get('password', ''),
     sort: store.get('sort', 'best'),
+    period: store.get('period', 'day'),
     compact: store.get('compact', false),
     read: new Set(store.get('read', [])),
     categories: [],
@@ -35,6 +36,15 @@
     state.nick = DEFAULT_NICKS[Math.floor(Math.random() * DEFAULT_NICKS.length)];
     store.set('nick', state.nick);
   }
+
+  // 핫한 글 기간
+  const PERIODS = [
+    { id: 'day', label: '하루간' },
+    { id: 'week', label: '일주일간' },
+    { id: 'month', label: '한달간' },
+    { id: 'year', label: '1년간' },
+    { id: 'all', label: '전체' },
+  ];
 
   const REWARDS = {
     gold: { emoji: '🪙', label: '골드', count: '30K' },
@@ -255,15 +265,22 @@
           <a class="write-btn" href="#/write${cat ? '?cat=' + cat : ''}">${icon.pen}<span>글쓰기</span></a>
         </div>
       </div>
+      ${state.sort === 'hot' ? `<div class="periods" role="group" aria-label="기간">
+        ${PERIODS.map((pd) => `<button type="button" class="period${state.period === pd.id ? ' on' : ''}" data-period="${pd.id}">${pd.label}</button>`).join('')}
+      </div>` : ''}
       ${q ? '' : tabs}
       <div class="list${state.compact ? ' compact' : ''}" id="list"><div class="empty">불러오는 중…</div></div>`;
 
+    view.querySelectorAll('[data-period]').forEach((b) => {
+      b.onclick = () => { state.period = b.dataset.period; store.set('period', state.period); renderList({ cat, q }); };
+    });
     view.querySelectorAll('[data-sort]').forEach((b) => {
       b.onclick = () => { state.sort = b.dataset.sort; store.set('sort', state.sort); renderList({ cat, q }); };
     });
     $('#btnLayout').onclick = () => { state.compact = !state.compact; store.set('compact', state.compact); renderList({ cat, q }); };
 
     const params = new URLSearchParams({ sort: state.sort });
+    if (state.sort === 'hot') params.set('period', state.period);
     if (cat) params.set('cat', cat);
     if (q) params.set('q', q);
     let posts;
@@ -277,7 +294,10 @@
     if (count) count.textContent = `글 ${posts.length}개`;
 
     if (!posts.length) {
-      $('#list').innerHTML = `<div class="empty"><img src="assets/ghost.svg" alt="">아직 글이 없어요. 첫 글을 남겨 보세요!</div>`;
+      const msg = state.sort === 'hot' && state.period !== 'all'
+        ? `${PERIODS.find((pd) => pd.id === state.period).label} 올라온 핫한 글이 없어요. 기간을 늘려 보세요.`
+        : '아직 글이 없어요. 첫 글을 남겨 보세요!';
+      $('#list').innerHTML = `<div class="empty"><img src="assets/ghost.svg" alt="">${msg}</div>`;
       return;
     }
     $('#list').innerHTML = posts.map((p) => {
