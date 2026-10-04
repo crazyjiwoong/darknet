@@ -47,8 +47,8 @@
   ];
 
   const REWARDS = {
-    gold: { emoji: '🪙', label: '골드', count: '30K' },
-    drink: { emoji: '🥤', label: '음료', count: '1' },
+    gold: { emoji: '🪙', label: '골드', count: '30K', image: 'assets/reward-gold.png' },
+    drink: { emoji: '🥤', label: '음료', count: '1', image: 'assets/reward-drink.png' },
     candy: { emoji: '🍬', label: '사탕', count: '3' },
     bread: { emoji: '🍞', label: '빵', count: '1' },
   };
@@ -157,6 +157,9 @@
     eye: '<svg viewBox="0 0 24 24"><path d="M12 5C6 5 2 12 2 12s4 7 10 7 10-7 10-7-4-7-10-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>',
     heart: '<svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/></svg>',
     back: '<svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+    best: '<svg viewBox="0 0 24 24"><path d="M12.5 2C9 6.5 5.5 10 5.5 14.6a6.6 6.6 0 0 0 13.2 0c0-2.4-1.2-4.4-2.8-6 .3 2.3-.9 4.1-2.9 4.1a2.8 2.8 0 0 1-2.8-2.9c0-2.6 1.3-4.9 2.3-7.8z"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M13.2 2.5a7.3 7.3 0 0 0-6 11.5L5.3 21.5l6.3-4.3a7.3 7.3 0 1 0 1.6-14.7zm.1 4.4a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8z"/></svg>',
+    check: '<svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L20 7" fill="none" stroke="#2a2226" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 12.5l5 5L20 7" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     pen: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>',
     sparkle: '<svg viewBox="0 0 24 24"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>',
     layoutCard: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>',
@@ -181,42 +184,37 @@
   function rewardTile(post, claimed) {
     const r = REWARDS[post.reward];
     if (!r) return '';
-    return `<div class="reward ${post.reward}${claimed ? ' claimed' : ''}" title="${esc(r.label)} 보상${claimed ? ' (획득함)' : ''}">
-      <span>${r.emoji}</span><span class="reward-count">${esc(r.count)}</span>
+    const inner = r.image ? '' : `<span class="reward-emoji">${r.emoji}</span><span class="reward-count">${esc(r.count)}</span>`;
+    return `<div class="reward-wrap" title="${esc(r.label)} 보상${claimed ? ' (획득함)' : ''}">
+      <div class="reward ${post.reward}${claimed ? ' claimed' : ''}">${inner}</div>
+      ${claimed ? `<div class="reward-check">${icon.check}</div>` : ''}
     </div>`;
   }
 
-  function voteStats(item, { comments, views, interactive, kind, id, menu }) {
+  function voteStats(item, { comments, views, interactive, kind, id, menu, who }) {
     const tag = interactive ? 'button' : 'span';
     const attrs = (type) => (interactive ? ` type="button" data-vote="${type}" data-kind="${kind}" data-id="${id}"` : '');
     return `<div class="stats">
-      <${tag} class="stat${item.myVote === 'up' ? ' on-up' : ''}"${attrs('up')} title="추천">${icon.flame}${item.up}</${tag}>
-      <${tag} class="stat${item.myVote === 'down' ? ' on-down' : ''}"${attrs('down')} title="비추천">${icon.drop}${item.down}</${tag}>
+      <${tag} class="stat${item.myVote === 'up' ? ' on-up' : ''}"${attrs('up')} title="추천">${icon.best}${item.up}</${tag}>
+      <${tag} class="stat${item.myVote === 'down' ? ' on-down' : ''}"${attrs('down')} title="비추천">${icon.pin}${item.down}</${tag}>
       ${comments != null ? `<span class="stat" title="댓글">${icon.chat}${comments}</span>` : ''}
       ${views != null ? `<span class="stat" title="조회수">${icon.eye}${views}</span>` : ''}
       ${menu || '<span class="stat stat-more">•••</span>'}
+      ${who ? `<span class="stat-who">${esc(who)}</span>` : ''}
     </div>`;
   }
 
   // ---------- 광고 ----------
   const ADS = [
-    { cls: 'city', top: '미스터리<br>해결해 드립니다', emoji: '💰', small: '고양이 찾기부터 차원 붕괴까지', bottom: '지금 당장<br>의뢰하기' },
-    { cls: 'lab', top: '모나티엄 시청', emoji: '🧪', small: '보수 넉넉 · 부작용 거의 없음(아마도)', bottom: '임상실험<br>참가자 모집' },
-    { cls: 'abyss', top: '위스퍼 오브<br>디 어비스', emoji: '🔮', small: '익명 랜덤 채팅 · 신규 가입 1회 무료', bottom: '심연과 대화하기' },
-    { cls: 'boutique', top: '엘레강스<br>부띠끄', emoji: '👗', small: '다크넷 회원 10% 할인', bottom: '가을 신상 입고' },
+    { src: 'assets/ad-request.png', alt: '미스터리 하나? 지금 당장 의뢰하기' },
+    { src: 'assets/ad-monatium.png', alt: '모나티엄 광고' },
   ];
   let adIndex = Math.floor(Math.random() * ADS.length);
   let adTimer;
   function renderAd() {
     const ad = ADS[adIndex];
     $('#ads').innerHTML = `
-      <a class="ad ${ad.cls}" href="#/" title="광고">
-        <span class="ad-label">AD</span>
-        <div class="ad-top">${ad.top}</div>
-        <div class="ad-emoji">${ad.emoji}</div>
-        <div class="ad-small">${esc(ad.small)}</div>
-        <div class="ad-bottom">${ad.bottom}</div>
-      </a>
+      <div class="ad"><img src="${ad.src}" alt="${esc(ad.alt)}" width="197" height="329"></div>
       <div class="ad-dots">${ADS.map((_, i) => `<button type="button" data-ad="${i}" class="${i === adIndex ? 'on' : ''}" aria-label="광고 ${i + 1}"></button>`).join('')}</div>`;
     clearInterval(adTimer);
     adTimer = setInterval(() => { adIndex = (adIndex + 1) % ADS.length; renderAd(); }, 8000);
@@ -248,7 +246,7 @@
     $('#searchInput').value = q;
 
     const sorts = [
-      { id: 'best', label: 'Best', icon: icon.flame },
+      { id: 'best', label: 'Best', icon: icon.best },
       { id: 'hot', label: 'Hot', icon: icon.flame },
       { id: 'new', label: 'New', icon: icon.sparkle },
     ];
@@ -268,7 +266,7 @@
 
     // 디시 갤러리 말머리 탭
     const tabs = `<nav class="head-tabs" aria-label="말머리">
-        <a class="head-tab${!cat ? ' on' : ''}" href="#/">전체</a>
+        <a class="head-tab all${!cat ? ' on' : ''}" href="#/">전체</a>
         ${visibleCats().map((c) => `<a class="head-tab${c.id === cat ? ' on' : ''}" href="#/b/${esc(c.id)}" style="--tab:${esc(c.color)}">${esc(c.name)}</a>`).join('')}
       </nav>`;
 
@@ -277,7 +275,7 @@
         ${sorts.map((s) => `<button type="button" class="sort-btn${state.sort === s.id ? ' on' : ''}" data-sort="${s.id}">${s.icon}${s.label}</button>`).join('')}
         <div class="toolbar-right">
           <button type="button" class="layout-btn" id="btnLayout" title="보기 방식 바꾸기">${state.compact ? icon.layoutList : icon.layoutCard}${icon.chevron}</button>
-          <a class="write-btn" href="#/write${cat ? '?cat=' + cat : ''}">${icon.pen}<span>글쓰기</span></a>
+          <a class="write-btn" href="#/write${cat ? '?cat=' + encodeURIComponent(cat) : ''}" title="글쓰기" aria-label="글쓰기">${icon.pen}</a>
         </div>
       </div>
       ${state.sort === 'hot' ? `<div class="periods" role="group" aria-label="기간">
@@ -321,9 +319,9 @@
       const notice = p.category === 'notice' && !cat;
       return `<a class="post-card${read ? ' read' : ''}${notice ? ' notice' : ''}" href="#/p/${p.id}">
         <div class="post-main">
-          <div class="post-cat"><span class="avatar"></span>${notice ? '📌 ' : ''}${catLabel(p.category)}<small>${esc(p.nick)} · ${timeAgo(p.createdAt)}</small></div>
+          <div class="post-cat"><span class="avatar"></span>${notice ? '📌 ' : ''}${catLabel(p.category)}</div>
           <div class="post-title">${esc(p.title)}</div>
-          ${voteStats(p, { comments: p.commentCount, views: p.views })}
+          ${voteStats(p, { comments: p.commentCount, views: p.views, who: `${p.nick} · ${timeAgo(p.createdAt)}` })}
         </div>
         ${p.hot ? hotBadge(p.hot) : ''}
         ${rewardTile(p, read)}
@@ -390,7 +388,7 @@
         <div id="comments">
           ${top.length ? top.map((c) => {
             const rs = replies(c.id);
-            return commentHtml(c) + (rs.length ? `<div class="replies">${rs.map(commentHtml).join('')}</div>` : '');
+            return `<div class="thread${rs.length ? ' has-replies' : ''}">${commentHtml(c)}${rs.length ? `<div class="replies">${rs.map(commentHtml).join('')}</div>` : ''}</div>`;
           }).join('') : '<div class="empty" style="padding:20px">첫 댓글을 남겨 보세요.</div>'}
         </div>
         <hr class="divider">
@@ -604,7 +602,7 @@
       admin.hidden = !cur?.admin;
       admin.required = !!cur?.admin;
       $('#rewardChips').innerHTML = [['', { emoji: '✖', label: '없음' }], ...Object.entries(REWARDS)]
-        .map(([id, r]) => `<button type="button" class="chip${id === reward ? ' on' : ''}" data-reward="${id}"><span class="emo">${r.emoji}</span>${esc(r.label)}</button>`)
+        .map(([id, r]) => `<button type="button" class="chip${id === reward ? ' on' : ''}" data-reward="${id}"><span class="emo">${r.image ? `<img src="${r.image}" alt="">` : r.emoji}</span>${esc(r.label)}</button>`)
         .join('');
     };
     drawChips();

@@ -6,9 +6,7 @@
   <title>다크넷</title>
   <meta name="description" content="엘리아스 최대의 익명 커뮤니티, 다크넷">
   <link rel="icon" href="assets/ghost.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="preload" href="fonts/NanumSquareRoundEB.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -50,7 +48,9 @@
         </header>
 
         <div class="content">
-          <main id="view" class="view"></main>
+          <div class="view-wrap">
+            <main id="view" class="view"></main>
+          </div>
           <aside class="ads" id="ads" aria-label="광고"></aside>
         </div>
       </div>

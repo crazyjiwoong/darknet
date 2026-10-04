@@ -434,6 +434,7 @@ const MIME = {
   '.webp': 'image/webp',
   '.gif': 'image/gif',
   '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
 };
 
 function serveStatic(req, res, url) {
