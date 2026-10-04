@@ -119,7 +119,7 @@ svg { display: block; }
 .me {
   display: flex; align-items: center; gap: 7px;
   border: 0; background: none;
-  font-weight: 800; font-size: 14px; color: #ddd0d9;
+  font-weight: 800; font-size: 14px; color: #b3a3ad;
   white-space: nowrap;
   padding: 4px 6px; border-radius: 8px;
 }
