@@ -294,12 +294,12 @@
       const thumbAttrs = p.thumb ? ` data-thumb="${esc(p.thumb)}" data-count="${p.imageCount}"` : '';
       return `<a class="post-card${read ? ' read' : ''}${notice ? ' notice' : ''}" href="#/p/${p.id}"${thumbAttrs}>
         <div class="post-main">
-          <div class="post-cat"><span class="avatar"></span>${notice ? '📌 ' : ''}${catLabel(p.category)}</div>
+          <div class="post-cat"><span class="avatar"></span>${notice ? '📌 ' : ''}${catLabel(p.category)}<span class="cat-who">${esc(p.nick)} · ${timeAgo(p.createdAt)}</span></div>
           <div class="post-title">${esc(p.title)}${p.imageCount ? `<span class="has-img" title="이미지 ${p.imageCount}장">${icon.image}${p.imageCount > 1 ? p.imageCount : ''}</span>` : ''}</div>
           ${voteStats(p, { comments: p.commentCount, views: p.views, who: `${p.nick} · ${timeAgo(p.createdAt)}` })}
         </div>
         ${p.hot ? hotBadge(p.hot) : ''}
-        ${!read ? `<span class="heart" title="안 읽은 글">${icon.heart}</span>` : ''}
+        ${!read ? `<span class="heart" title="안 읽은 글">${icon.heart}</span><span class="unread-dot" title="안 읽은 글"></span>` : ''}
       </a>`;
     }).join('');
   }
@@ -804,6 +804,12 @@
   }
 
   // ---------- 전역 이벤트 ----------
+  $('#btnSearch').onclick = () => {
+    const open = !$('.topbar').classList.contains('search-open');
+    $('.topbar').classList.toggle('search-open', open);
+    if (open) $('#searchInput').focus();
+  };
+
   $('#searchForm').onsubmit = (e) => {
     e.preventDefault();
     const q = $('#searchInput').value.trim();

@@ -658,24 +658,90 @@ textarea.field { resize: vertical; min-height: 80px; line-height: 1.55; }
 @media (max-width: 900px) {
   .ads { display: none; }
 }
+/* 데스크톱에서는 숨기는 모바일 전용 요소 */
+.cat-who, .unread-dot, .search-toggle { display: none; }
+
+/* ---------- 모바일: 얇은 카드 (시안 B) ---------- */
 @media (max-width: 640px) {
-  .topbar { flex-wrap: wrap; gap: 8px; padding: 8px 10px 10px; }
-  .topbar::after { left: 10px; right: 10px; }
-  .search { order: 3; flex-basis: 100%; max-width: none; }
-  .me { margin-left: auto; }
-  .content { padding: 12px 8px 0; }
-  .view { padding-right: 2px; }
-  .post-card { min-height: 0; padding: 10px 14px 9px 12px; gap: 10px; margin-right: 2px; }
-  .post-cat { font-size: 14.5px; }
-  .post-title { font-size: 17px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  /* 한 줄 헤더, 검색은 아이콘을 누르면 아래로 열림 */
+  .topbar { flex-wrap: wrap; gap: 6px; padding: 0 10px; min-height: 52px; }
+  .topbar::after { left: 0; right: 0; height: 1px; }
+  .icon-btn svg { width: 22px; height: 22px; }
+  .brand { gap: 6px; }
+  .brand-ghost { width: 32px; height: 26px; }
+  .brand-wordmark { height: 13px; }
+  .search { display: none; order: 3; flex-basis: 100%; max-width: none; margin: 0 0 10px; height: 34px; }
+  .topbar.search-open .search { display: flex; }
+  .search-toggle { display: grid; margin-left: auto; }
+  .search-toggle svg { stroke: #b6a5b0; stroke-width: 2.4; }
+  .me { padding: 4px; }
+  .me #nickLabel { display: none; }
+
+  .content { padding: 0; }
+  .view { padding: 0 0 24px; margin-top: 0; }
+
+  /* 정렬: 밑줄 탭 */
+  .toolbar {
+    height: 44px; margin: 0; padding: 0 12px 0 14px; gap: 18px;
+    border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none;
+  }
+  .sort-btn { height: 100%; padding: 0; gap: 0; border-radius: 0; background: none; font-size: 14.5px; border-bottom: 2.5px solid transparent; }
+  .sort-btn svg { display: none; }
+  .sort-btn.on { background: none; border-bottom-color: var(--pink); }
+  .layout-btn { display: none; }
+  .write-btn { width: 32px; height: 32px; }
+
+  .periods { margin: 10px 14px 6px; }
+  .hot-help { margin: 0 16px 6px; font-size: 11.5px; }
+
+  /* 말머리 칩: 작게, 아래 줄로 구분 */
+  .head-tabs { margin: 0; padding: 10px 14px; gap: 6px; border-bottom: 1px solid var(--line); }
+  .head-tab { height: 26px; padding: 0 11px; font-size: 12.5px; border-width: 1.5px; gap: 5px; }
+  .head-tab::before { width: 6px; height: 6px; }
+
+  .board-head { margin: 14px 14px 6px; }
+  .board-head h2 { font-size: 19px; }
+  .board-desc { margin: 0 14px 10px; font-size: 12.5px; }
+  .list { padding: 10px 12px 0; }
+
+  /* 얇은 카드 */
+  .post-card {
+    min-height: 0; margin: 0 0 8px; padding: 10px 12px 9px; gap: 10px;
+    border-width: 1.5px; border-color: #b7799f; border-radius: 9px;
+    background: linear-gradient(90deg, #282226, #2c2529 55%, #3f2f39);
+    box-shadow: none;
+  }
+  .post-card:hover { transform: none; }
+  .post-card.read { border-color: var(--card-read); background: #29232680; }
+  .post-card.notice { border-color: #ff7d9c; }
+  .post-cat { gap: 6px; font-size: 12.5px; }
+  .post-cat .avatar { width: 18px; height: 17px; }
+  .post-cat .avatar::before { left: 4.5px; top: 7px; width: 2.5px; height: 2.5px; box-shadow: 6px 0 0 #2b2226; }
+  .post-cat .avatar::after { display: none; }
+  .cat-who {
+    display: block; margin: 0 12px 0 auto; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: #6c5c65; font-size: 11.5px; font-weight: 700;
+  }
+  .post-title { margin: 5px 0 6px; font-size: 15.5px; white-space: nowrap; display: block; }
   .stats { gap: 14px; font-size: 12px; }
-  .stat-who { display: none; }
-  .hot-badge { width: 52px; padding: 4px; }
+  .stat svg { width: 13px; height: 13px; }
+  .stats .stat[title="비추천"], .stats .stat-more, .stat-who { display: none; }
+  .heart { display: none; }
+  .unread-dot {
+    display: block; position: absolute; top: 10px; right: 10px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--pink); box-shadow: 0 0 6px var(--pink);
+  }
+  .hot-badge { width: 50px; padding: 3px; border-width: 1px; }
+  .hot-num { font-size: 15px; }
   .hot-label { display: none; }
-  .heart { right: -2px; }
-  .sort-btn { padding: 0 11px 0 9px; font-size: 13.5px; }
-  .layout-btn svg + svg { display: none; }
+  .list.compact .post-card { padding: 8px 12px; }
+
+  /* 글 상세 / 글쓰기 */
+  .detail { margin: 10px 10px 0; padding: 14px; }
+  .detail .stats .stat[title="비추천"], .detail .stats .stat-more { display: flex; }
   .form-row { flex-direction: column; }
-  .detail { padding: 14px; margin-right: 0; }
+  .empty { padding: 40px 14px; }
   .preview { width: min(190px, 48vw); height: min(190px, 48vw); padding: 6px; }
 }
