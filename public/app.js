@@ -253,14 +253,9 @@
     ];
 
     const hero = !cat && !q
-      ? `<section class="hero" aria-label="다크넷 정보">
-          <div class="hero-head"><strong>다크넷</strong><span>DARKNET</span></div>
-          <div class="hero-logo"><img class="hero-ghost" src="assets/ghost.svg" alt="" width="120" height="96"><img class="hero-wordmark" src="assets/darknet-wordmark.svg" alt="DARKNET" width="600" height="97"></div>
-          <table class="hero-table">
-            <tr><th>유형</th><td><span class="wiki-link">온라인 커뮤니티</span> 사이트<br><span class="wiki-link">소셜 미디어</span><sup title="아르코의 테마극장 「댄스 쇼다운! 꿈꾸는 포도!」에서 유튜브나 인스타, 트위터 같은 SNS 역할도 있음을 보여줬다.">[1]</sup></td></tr>
-            <tr><th>운영자</th><td><a class="wiki-link" href="#/search?q=${encodeURIComponent('다크불릿')}">다크불릿</a></td></tr>
-            <tr><th>회원가입</th><td>선택</td></tr>
-          </table>
+      ? `<section class="hero" aria-label="다크넷">
+          <img class="hero-ghost" src="assets/ghost.svg" alt="" width="120" height="96">
+          <img class="hero-wordmark" src="assets/darknet-wordmark-light.svg" alt="DARKNET" width="600" height="97">
         </section>`
       : `<div class="board-head"><h2>${q ? esc(`"${q}" 검색 결과`) : catLabel(cat)}</h2><span id="countLabel"></span></div>
          ${cat ? `<p class="board-desc">${esc(state.categories.find((c) => c.id === cat)?.desc || '')}</p>` : ''}`;
