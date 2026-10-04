@@ -19,9 +19,36 @@ module.exports = function seed(nextId) {
 
   const posts = [
     {
-      category: 'notice',
+      category: 'guide',
+      nick: '탑스핀블레이드',
+      title: '[공략] 리그 오브 엘프 브론즈 탈출 공략',
+      body: '1. 미니맵을 보세요. 진짜로.\n2. 혼자 싸우러 들어가지 마세요.\n3. 지면 채팅 끄고 다음 판 하세요.\n4. 연패하면 오늘은 그만. 내일의 내가 더 잘함.\n\n이것만 지켜도 실버는 갑니다. 질문은 댓글로',
+      agoH: 9,
+      up: 24,
+      down: 1,
+      views: 300,
+      comments: [
+        comment('짱킹갓존재', '3번 못 지켜서 아직 브론즈임', 8, 17),
+        comment('레볼루션10', '4번이 제일 어려움', 7, 8),
+      ],
+    },
+    {
+      category: 'meme',
+      nick: 'IlilillIlIill',
+      title: '다크넷 이름의 진실',
+      body: '이름: 다크넷\n실제: 시장, 회장, 여왕까지 다 하는 라이트넷\n\n교주: "이젠 라이트넷이라고 불러야 되는 거 아니야?"\n\nVVVVVVVVVVVV',
+      agoH: 4,
+      up: 30,
+      down: 2,
+      views: 260,
+      comments: [
+        comment('언니여왕', '여왕이 누군데', 3, 22),
+      ],
+    },
+    {
+      category: 'info',
       nick: '다크불릿',
-      title: '[공지] 다크넷 이용 수칙 (필독)',
+      title: '[정보] 다크넷 이용 수칙 (운영자 피셜)',
       body: '어둠의 계약에 응한 자들이여, 다음을 지켜라.\n\n1. 운영자(검고 검은 마스터 게시판 관리장)의 정체를 캐지 말 것\n2. 진압반 홈페이지 테러 인증글 금지\n3. 모나티엄 기밀 문서 유출 금지 (걸리면 나도 곤란함)\n4. 글 종류(말머리)를 꼭 골라서 쓸 것\n5. 악플러는 사이버 수사과에 넘긴다\n\n— 검고 검은 마스터 게시판 관리장',
       agoH: 200,
       up: 40,
@@ -60,7 +87,7 @@ module.exports = function seed(nextId) {
       ],
     },
     {
-      category: 'humor',
+      category: 'meme',
       nick: '냥냥구루',
       title: '진압반 홈페이지 공지 문구 바뀐 거 봤냐 VVVVVVV',
       body: '"다크넷 접속을 자제해 주시기 바랍니다"\n\n근데 이 공지를 다크넷에서 보고 있음 VVVVVVVVV',
@@ -74,9 +101,9 @@ module.exports = function seed(nextId) {
       ],
     },
     {
-      category: 'review',
+      category: 'general',
       nick: '근본생식가',
-      title: '[후기] 엘레강스 부띠끄 다녀옴',
+      title: '엘레강스 부띠끄 다녀옴',
       body: '옷 예쁘고 사장님 친절함.\n근데 붕대 감고 간 사람은 입구에서 조용히 돌려보내는 거 같았음…',
       agoH: 5,
       up: 12,
@@ -96,7 +123,7 @@ module.exports = function seed(nextId) {
       comments: [],
     },
     {
-      category: 'news',
+      category: 'general',
       nick: '빅시스터',
       title: '위대한 시장 엘레나',
       body: '모나티엄을 이끄는 위대한 시장 엘레나 님을 찬양합시다.\n오늘도 엘프넷은 평화롭습니다.\n\n※ 이 글은 모나티엄 시청 공식 입장과 무관합니다(아마도).',
@@ -170,7 +197,7 @@ module.exports = function seed(nextId) {
       ],
     },
     {
-      category: 'promo',
+      category: 'general',
       nick: '엘레강스부띠끄',
       title: '[엘레강스 부띠끄] 가을 신상 입고! 다크넷 회원 10% 할인',
       body: '엘레강스 부띠끄에서 가을 신상이 입고되었습니다.\n다크넷 보고 왔다고 말씀하시면 10% 할인해 드려요.\n\n※ 붕대, 안대, 검은 망토 계열 상품은 취급하지 않습니다.',
@@ -197,7 +224,7 @@ module.exports = function seed(nextId) {
       ],
     },
     {
-      category: 'jobs',
+      category: 'general',
       nick: '쩐$땡겨드립니다※',
       title: '[채용] 엘리아스 킹짱 언더돌 매니저 보조 구함',
       body: '업무: 팬서비스 보조, 굿즈 판매\n급여: 성과급 (협의)\n우대: 키샤땅을 진심으로 사랑하는 분\n\n연락은 쪽지로.',

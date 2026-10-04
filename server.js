@@ -11,20 +11,21 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 // 말머리 (디시 갤러리처럼 글 종류를 나눈다)
 const CATEGORIES = [
-  { id: 'notice', name: '공지', color: '#ff6b8b', desc: '운영자 공지 (관리자 비밀번호 필요)', admin: true },
   { id: 'general', name: '일반', color: '#c9b8c2', desc: '잡담, 일상, 아무 얘기' },
-  { id: 'ballfic', name: '볼문학', color: '#ff9fd6', desc: '사도들 볼따구가 나오는 팬 문학, 연재 소설' },
-  { id: 'info', name: '정보', color: '#7fd4ff', desc: '알아두면 좋은 정보, 공략, 팁' },
+  { id: 'info', name: '정보', color: '#7fd4ff', desc: '알아두면 좋은 정보와 소식' },
   { id: 'question', name: '질문', color: '#ffd166', desc: '궁금한 건 다크넷 선배들에게' },
-  { id: 'humor', name: '유머', color: '#9df29a', desc: '웃긴 글. 웃음은 VVVV' },
+  { id: 'guide', name: '공략', color: '#8fe3a0', desc: '게임 공략, 꿀팁, 육성 가이드' },
   { id: 'creative', name: '창작', color: '#c7a6ff', desc: '그림, 시, 노래 가사 같은 창작물' },
-  { id: 'review', name: '후기', color: '#ffb37a', desc: '가게, 영화, 굿즈 후기' },
-  { id: 'news', name: '뉴스', color: '#8fb8ff', desc: '엘리아스 소식, 모나티엄 시청 발표' },
-  { id: 'jobs', name: '채용', color: '#a5e8d4', desc: '구인, 구직, 알바' },
-  { id: 'promo', name: '홍보', color: '#f7a6a6', desc: '가게, 방송, 굿즈 홍보' },
+  { id: 'meme', name: '밈', color: '#ffb37a', desc: '웃긴 글, 밈, 짤 설명. 웃음은 VVVV' },
+  { id: 'ballfic', name: '볼문학', color: '#ff9fd6', desc: '사도들 볼따구가 나오는 팬 문학, 연재 소설' },
+  // 공지는 ADMIN_PASSWORD를 설정했을 때만 말머리 목록에 나온다
+  { id: 'notice', name: '공지', color: '#ff6b8b', desc: '운영자 공지 (관리자 비밀번호 필요)', admin: true },
 ];
-// 예전 게시판 id → 새 말머리 id
-const LEGACY_CATEGORY = { daily: 'general', curious: 'question', novel: 'ballfic', qna: 'question', ad: 'promo' };
+// 예전 말머리 id → 새 말머리 id
+const LEGACY_CATEGORY = {
+  daily: 'general', curious: 'question', novel: 'ballfic', qna: 'question', ad: 'general',
+  humor: 'meme', review: 'general', news: 'info', jobs: 'general', promo: 'general',
+};
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const CATEGORY_IDS = new Set(CATEGORIES.map((c) => c.id));
 const REWARDS = new Set(['', 'gold', 'drink', 'candy', 'bread']);
@@ -231,7 +232,7 @@ async function api(req, res, url) {
   const voter = voterId(url.searchParams.get('voter'));
 
   if (m === 'GET' && parts[0] === 'categories' && parts.length === 1) {
-    return send(res, 200, CATEGORIES.map((c) => ({ ...c, locked: !!c.admin && !ADMIN_PASSWORD })));
+    return send(res, 200, CATEGORIES.map((c) => ({ ...c, hidden: !!c.admin && !ADMIN_PASSWORD })));
   }
 
   if (parts[0] !== 'posts') throw new HttpError(404, '없는 경로');

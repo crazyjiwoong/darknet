@@ -65,6 +65,10 @@
     return state.categories.find((c) => c.id === id)?.name || id;
   }
 
+  function visibleCats() {
+    return state.categories.filter((c) => !c.hidden);
+  }
+
   function catColor(id) {
     return state.categories.find((c) => c.id === id)?.color || 'var(--pink-text)';
   }
@@ -181,7 +185,7 @@
   function renderAd() {
     const ad = ADS[adIndex];
     $('#ads').innerHTML = `
-      <a class="ad ${ad.cls}" href="#/b/promo" title="홍보 글 보기">
+      <a class="ad ${ad.cls}" href="#/" title="광고">
         <span class="ad-label">AD</span>
         <div class="ad-top">${ad.top}</div>
         <div class="ad-emoji">${ad.emoji}</div>
@@ -203,7 +207,7 @@
     $('#drawerBackdrop').hidden = !open;
   }
   function renderDrawer(current) {
-    const links = [{ id: '', name: '전체 글' }, ...state.categories];
+    const links = [{ id: '', name: '전체 글' }, ...visibleCats()];
     $('#drawerList').innerHTML = links
       .map((c) => `<a class="drawer-link${c.id === current ? ' on' : ''}" href="${c.id ? '#/b/' + c.id : '#/'}">${esc(c.name)}<small>${c.id ? '›' : ''}</small></a>`)
       .join('') + `<a class="drawer-link" href="#/write">✎ 글쓰기</a>`;
@@ -240,7 +244,7 @@
     // 디시 갤러리 말머리 탭
     const tabs = `<nav class="head-tabs" aria-label="말머리">
         <a class="head-tab${!cat ? ' on' : ''}" href="#/">전체</a>
-        ${state.categories.map((c) => `<a class="head-tab${c.id === cat ? ' on' : ''}" href="#/b/${esc(c.id)}" style="--tab:${esc(c.color)}">${esc(c.name)}</a>`).join('')}
+        ${visibleCats().map((c) => `<a class="head-tab${c.id === cat ? ' on' : ''}" href="#/b/${esc(c.id)}" style="--tab:${esc(c.color)}">${esc(c.name)}</a>`).join('')}
       </nav>`;
 
     view.innerHTML = `${hero}
@@ -520,7 +524,7 @@
   function renderWrite({ cat }) {
     renderDrawer('');
     setTitle('글쓰기');
-    const usable = state.categories.filter((c) => !c.locked);
+    const usable = visibleCats();
     let category = usable.some((c) => c.id === cat) ? cat : 'general';
     let reward = '';
 
