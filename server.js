@@ -5,6 +5,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
+// 호스팅(Railway, Render 등) 뒤에서 돌릴 때는 TRUST_PROXY=1 로 켜서 실제 접속자 IP를 쓴다
+const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -292,8 +294,16 @@ function voterId(v) {
 
 // 간단한 도배 방지: IP당 일정 시간 내 작성 횟수 제한
 const recentWrites = new Map();
+function clientIp(req) {
+  if (TRUST_PROXY) {
+    const fwd = req.headers['x-forwarded-for'];
+    if (typeof fwd === 'string' && fwd.trim()) return fwd.split(',')[0].trim();
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+
 function throttle(req, kind, ms) {
-  const ip = kind + ':' + (req.socket.remoteAddress || 'unknown');
+  const ip = kind + ':' + clientIp(req);
   const now = Date.now();
   const last = recentWrites.get(ip) || 0;
   if (now - last < ms) throw new HttpError(429, '도배 방지: 잠시 후 다시 시도해 주세요');
@@ -556,6 +566,11 @@ const server = http.createServer(async (req, res) => {
     }
   }
 });
+
+setInterval(() => {
+  const cutoff = Date.now() - 60 * 1000;
+  for (const [k, t] of recentWrites) if (t < cutoff) recentWrites.delete(k);
+}, 60 * 1000).unref();
 
 server.listen(PORT, () => {
   console.log(`다크넷 접속 중… http://localhost:${PORT}`);

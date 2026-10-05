@@ -52,11 +52,30 @@ data/uploads/    올린 이미지 (자동 생성, git 제외)
 
 비밀번호는 scrypt로 해시해서 저장합니다. 도배 방지를 위해 같은 IP에서는 글을 5초, 댓글을 2초 간격으로만 쓸 수 있습니다.
 
-## 배포
+## 배포 (온라인에 올리기)
 
-글이 서버에 저장되기 때문에 GitHub Pages 같은 정적 호스팅에서는 동작하지 않습니다.
-Render, Railway, Fly.io 같은 Node 호스팅이나 VPS에서 `npm start`로 실행하세요.
-`data/` 폴더는 영구 디스크에 두어야 재시작해도 글이 남습니다(`DATA_DIR` 환경 변수로 위치 지정).
+글과 이미지가 서버에 저장되기 때문에 GitHub Pages 같은 정적 호스팅에서는 동작하지 않습니다.
+Node 서버를 돌릴 수 있고, **재시작해도 지워지지 않는 저장 공간(볼륨/디스크)**을 주는 곳이 필요합니다.
+
+### 환경 변수
+
+| 이름 | 값 | 설명 |
+|---|---|---|
+| `DATA_DIR` | `/data` | 글(`db.json`)과 올린 이미지를 저장할 폴더. 반드시 영구 저장 공간을 연결한 경로 |
+| `TRUST_PROXY` | `1` | 호스팅 뒤에서 실제 접속자 IP로 도배 방지를 하기 위해 필요 |
+| `ADMIN_PASSWORD` | (원하는 비밀번호) | 설정하면 공지 말머리가 생김 (선택) |
+| `PORT` | | 대부분의 호스팅이 자동으로 넣어 줌 |
+
+### Railway 예시
+
+1. https://railway.com 에 GitHub 계정으로 가입
+2. **New Project → Deploy from GitHub repo** → 이 저장소 선택 (자동으로 `npm start`로 실행됨)
+3. 서비스를 우클릭(또는 설정)해서 **Volume 추가**, 마운트 경로를 `/data`로
+4. **Variables**에 `DATA_DIR=/data`, `TRUST_PROXY=1`, (선택) `ADMIN_PASSWORD=...` 추가
+5. **Settings → Networking → Generate Domain**을 누르면 `○○○.up.railway.app` 주소가 생김
+
+`Dockerfile`도 들어 있어서 Fly.io, Render(유료 디스크), VPS 같은 곳에도 그대로 올릴 수 있습니다.
+도메인(예: darknet.example.com)을 사서 연결하려면 호스팅 설정에서 커스텀 도메인을 추가하면 됩니다.
 
 ## 참고
 
